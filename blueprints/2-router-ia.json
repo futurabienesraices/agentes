@@ -1,0 +1,318 @@
+{
+  "name": "2 - Router IA: Dirige tareas a la IA especializada",
+  "flow": [
+    {
+      "id": 1,
+      "module": "webhook:CustomWebHook",
+      "version": 1,
+      "parameters": {
+        "hook": null,
+        "maxResults": 1
+      },
+      "mapper": {},
+      "metadata": {
+        "designer": { "x": -285, "y": 0 },
+        "restore": {
+          "parameters": {
+            "hook": {
+              "label": "Router IA Webhook",
+              "data": { "editable": true }
+            }
+          }
+        },
+        "parameters": [
+          { "name": "hook", "type": "hook:apihook", "label": "Webhook", "required": true },
+          { "name": "maxResults", "type": "number", "label": "Máximo de resultados" }
+        ],
+        "expect": [
+          { "name": "prompt", "type": "text", "label": "Prompt", "required": true },
+          {
+            "name": "type",
+            "type": "select",
+            "label": "Tipo de tarea",
+            "required": true,
+            "options": [
+              { "label": "Código / Programación", "value": "code" },
+              { "label": "Contenido Creativo", "value": "creative" },
+              { "label": "Análisis / Razonamiento", "value": "analysis" },
+              { "label": "Otro", "value": "default" }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": 2,
+      "module": "router:RouterModule",
+      "version": 1,
+      "parameters": {},
+      "mapper": null,
+      "metadata": {
+        "designer": { "x": 15, "y": 0 }
+      },
+      "routes": [
+        {
+          "flow": [
+            {
+              "id": 3,
+              "module": "http:ActionSendData",
+              "version": 3,
+              "parameters": {
+                "handleErrors": false,
+                "useNewZLibDecompression": true
+              },
+              "mapper": {
+                "url": "https://api.openai.com/v1/chat/completions",
+                "serializeUrl": false,
+                "method": "post",
+                "headers": [
+                  { "name": "Authorization", "value": "Bearer YOUR_OPENAI_API_KEY" },
+                  { "name": "content-type", "value": "application/json" }
+                ],
+                "qs": [],
+                "bodyType": "raw",
+                "parseResponse": true,
+                "rejectUnauthorized": true,
+                "followRedirect": true,
+                "gzip": true,
+                "contentType": "application/json",
+                "data": "{\"model\":\"gpt-4o\",\"messages\":[{\"role\":\"system\",\"content\":\"Eres un experto programador. Escribe código limpio, bien comentado y funcional. Incluye ejemplos de uso cuando sea relevante.\"},{\"role\":\"user\",\"content\":\"{{1.body.prompt}}\"}]}"
+              },
+              "metadata": {
+                "designer": { "x": 315, "y": -200 },
+                "restore": {}
+              }
+            },
+            {
+              "id": 4,
+              "module": "webhook:WebhookRespond",
+              "version": 1,
+              "parameters": {},
+              "mapper": {
+                "status": "200",
+                "headers": [
+                  { "name": "content-type", "value": "application/json" }
+                ],
+                "body": "{\"status\":\"success\",\"ia_utilizada\":\"GPT-4o\",\"tipo_tarea\":\"code\",\"prompt\":\"{{1.body.prompt}}\",\"respuesta\":\"{{3.data.choices[1].message.content}}\"}"
+              },
+              "metadata": {
+                "designer": { "x": 615, "y": -200 },
+                "restore": {}
+              }
+            }
+          ],
+          "filter": {
+            "name": "Tarea de código",
+            "conditions": [
+              [
+                {
+                  "a": "{{1.body.type}}",
+                  "b": "code",
+                  "o": "text:equal"
+                }
+              ]
+            ]
+          }
+        },
+        {
+          "flow": [
+            {
+              "id": 5,
+              "module": "http:ActionSendData",
+              "version": 3,
+              "parameters": {
+                "handleErrors": false,
+                "useNewZLibDecompression": true
+              },
+              "mapper": {
+                "url": "https://api.anthropic.com/v1/messages",
+                "serializeUrl": false,
+                "method": "post",
+                "headers": [
+                  { "name": "x-api-key", "value": "YOUR_ANTHROPIC_API_KEY" },
+                  { "name": "anthropic-version", "value": "2023-06-01" },
+                  { "name": "content-type", "value": "application/json" }
+                ],
+                "qs": [],
+                "bodyType": "raw",
+                "parseResponse": true,
+                "rejectUnauthorized": true,
+                "followRedirect": true,
+                "gzip": true,
+                "contentType": "application/json",
+                "data": "{\"model\":\"claude-opus-4-6\",\"max_tokens\":3000,\"system\":\"Eres un escritor creativo de primer nivel. Tu escritura es evocadora, original y cautivadora. Adaptas el tono y estilo al contexto solicitado.\",\"messages\":[{\"role\":\"user\",\"content\":\"{{1.body.prompt}}\"}]}"
+              },
+              "metadata": {
+                "designer": { "x": 315, "y": 0 },
+                "restore": {}
+              }
+            },
+            {
+              "id": 6,
+              "module": "webhook:WebhookRespond",
+              "version": 1,
+              "parameters": {},
+              "mapper": {
+                "status": "200",
+                "headers": [
+                  { "name": "content-type", "value": "application/json" }
+                ],
+                "body": "{\"status\":\"success\",\"ia_utilizada\":\"Claude\",\"tipo_tarea\":\"creative\",\"prompt\":\"{{1.body.prompt}}\",\"respuesta\":\"{{5.data.content[1].text}}\"}"
+              },
+              "metadata": {
+                "designer": { "x": 615, "y": 0 },
+                "restore": {}
+              }
+            }
+          ],
+          "filter": {
+            "name": "Tarea creativa",
+            "conditions": [
+              [
+                {
+                  "a": "{{1.body.type}}",
+                  "b": "creative",
+                  "o": "text:equal"
+                }
+              ]
+            ]
+          }
+        },
+        {
+          "flow": [
+            {
+              "id": 7,
+              "module": "http:ActionSendData",
+              "version": 3,
+              "parameters": {
+                "handleErrors": false,
+                "useNewZLibDecompression": true
+              },
+              "mapper": {
+                "url": "https://api.anthropic.com/v1/messages",
+                "serializeUrl": false,
+                "method": "post",
+                "headers": [
+                  { "name": "x-api-key", "value": "YOUR_ANTHROPIC_API_KEY" },
+                  { "name": "anthropic-version", "value": "2023-06-01" },
+                  { "name": "content-type", "value": "application/json" }
+                ],
+                "qs": [],
+                "bodyType": "raw",
+                "parseResponse": true,
+                "rejectUnauthorized": true,
+                "followRedirect": true,
+                "gzip": true,
+                "contentType": "application/json",
+                "data": "{\"model\":\"claude-opus-4-6\",\"max_tokens\":3000,\"system\":\"Eres un analista experto. Realizas análisis profundos, objetivos y bien fundamentados. Estructuras tus respuestas con claridad: contexto, análisis detallado y conclusiones accionables.\",\"messages\":[{\"role\":\"user\",\"content\":\"{{1.body.prompt}}\"}]}"
+              },
+              "metadata": {
+                "designer": { "x": 315, "y": 200 },
+                "restore": {}
+              }
+            },
+            {
+              "id": 8,
+              "module": "webhook:WebhookRespond",
+              "version": 1,
+              "parameters": {},
+              "mapper": {
+                "status": "200",
+                "headers": [
+                  { "name": "content-type", "value": "application/json" }
+                ],
+                "body": "{\"status\":\"success\",\"ia_utilizada\":\"Claude\",\"tipo_tarea\":\"analysis\",\"prompt\":\"{{1.body.prompt}}\",\"respuesta\":\"{{7.data.content[1].text}}\"}"
+              },
+              "metadata": {
+                "designer": { "x": 615, "y": 200 },
+                "restore": {}
+              }
+            }
+          ],
+          "filter": {
+            "name": "Tarea de análisis",
+            "conditions": [
+              [
+                {
+                  "a": "{{1.body.type}}",
+                  "b": "analysis",
+                  "o": "text:equal"
+                }
+              ]
+            ]
+          }
+        },
+        {
+          "flow": [
+            {
+              "id": 9,
+              "module": "http:ActionSendData",
+              "version": 3,
+              "parameters": {
+                "handleErrors": false,
+                "useNewZLibDecompression": true
+              },
+              "mapper": {
+                "url": "https://api.openai.com/v1/chat/completions",
+                "serializeUrl": false,
+                "method": "post",
+                "headers": [
+                  { "name": "Authorization", "value": "Bearer YOUR_OPENAI_API_KEY" },
+                  { "name": "content-type", "value": "application/json" }
+                ],
+                "qs": [],
+                "bodyType": "raw",
+                "parseResponse": true,
+                "rejectUnauthorized": true,
+                "followRedirect": true,
+                "gzip": true,
+                "contentType": "application/json",
+                "data": "{\"model\":\"gpt-4o\",\"messages\":[{\"role\":\"system\",\"content\":\"Eres un asistente inteligente y versátil. Responde de forma clara, precisa y útil.\"},{\"role\":\"user\",\"content\":\"{{1.body.prompt}}\"}]}"
+              },
+              "metadata": {
+                "designer": { "x": 315, "y": 400 },
+                "restore": {}
+              }
+            },
+            {
+              "id": 10,
+              "module": "webhook:WebhookRespond",
+              "version": 1,
+              "parameters": {},
+              "mapper": {
+                "status": "200",
+                "headers": [
+                  { "name": "content-type", "value": "application/json" }
+                ],
+                "body": "{\"status\":\"success\",\"ia_utilizada\":\"GPT-4o\",\"tipo_tarea\":\"default\",\"prompt\":\"{{1.body.prompt}}\",\"respuesta\":\"{{9.data.choices[1].message.content}}\"}"
+              },
+              "metadata": {
+                "designer": { "x": 615, "y": 400 },
+                "restore": {}
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "instant": true,
+    "version": 1,
+    "scenario": {
+      "roundtrips": 1,
+      "maxErrors": 3,
+      "autoCommit": true,
+      "autoCommitTriggerLast": true,
+      "sequential": false,
+      "confidential": false,
+      "dataloss": false,
+      "dlq": false,
+      "freshVariables": false
+    },
+    "designer": {
+      "orphans": []
+    },
+    "zone": "eu1.make.com"
+  }
+}

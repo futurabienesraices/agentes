@@ -1,0 +1,168 @@
+{
+  "name": "1 - Pipeline IA: Claude → GPT-4 → Claude Revisión",
+  "flow": [
+    {
+      "id": 1,
+      "module": "webhook:CustomWebHook",
+      "version": 1,
+      "parameters": {
+        "hook": null,
+        "maxResults": 1
+      },
+      "mapper": {},
+      "metadata": {
+        "designer": { "x": -285, "y": 0 },
+        "restore": {
+          "parameters": {
+            "hook": {
+              "label": "Pipeline IA Webhook",
+              "data": { "editable": true }
+            }
+          }
+        },
+        "parameters": [
+          { "name": "hook", "type": "hook:apihook", "label": "Webhook", "required": true },
+          { "name": "maxResults", "type": "number", "label": "Máximo de resultados" }
+        ],
+        "expect": [
+          { "name": "prompt", "type": "text", "label": "Prompt principal", "required": true },
+          { "name": "context", "type": "text", "label": "Contexto adicional (opcional)" }
+        ]
+      }
+    },
+    {
+      "id": 2,
+      "module": "http:ActionSendData",
+      "version": 3,
+      "parameters": {
+        "handleErrors": false,
+        "useNewZLibDecompression": true
+      },
+      "mapper": {
+        "url": "https://api.anthropic.com/v1/messages",
+        "serializeUrl": false,
+        "method": "post",
+        "headers": [
+          { "name": "x-api-key", "value": "YOUR_ANTHROPIC_API_KEY" },
+          { "name": "anthropic-version", "value": "2023-06-01" },
+          { "name": "content-type", "value": "application/json" }
+        ],
+        "qs": [],
+        "bodyType": "raw",
+        "parseResponse": true,
+        "rejectUnauthorized": true,
+        "followRedirect": true,
+        "gzip": true,
+        "contentType": "application/json",
+        "data": "{\"model\":\"claude-opus-4-6\",\"max_tokens\":2048,\"system\":\"Eres un experto en planificación de tareas. Analiza el siguiente prompt y crea un plan estructurado paso a paso que otro modelo de IA pueda seguir para ejecutarlo. Sé específico, claro y detallado. Responde SOLO con el plan en formato de lista numerada.\",\"messages\":[{\"role\":\"user\",\"content\":\"Tarea: {{1.body.prompt}}\\n\\nContexto adicional: {{1.body.context}}\"}]}"
+      },
+      "metadata": {
+        "designer": { "x": 15, "y": 0 },
+        "restore": {},
+        "expect": [
+          { "name": "url", "type": "url", "label": "URL" },
+          { "name": "method", "type": "select", "label": "Método" },
+          { "name": "headers", "type": "array", "label": "Headers" },
+          { "name": "data", "type": "text", "label": "Body (JSON)" }
+        ]
+      }
+    },
+    {
+      "id": 3,
+      "module": "http:ActionSendData",
+      "version": 3,
+      "parameters": {
+        "handleErrors": false,
+        "useNewZLibDecompression": true
+      },
+      "mapper": {
+        "url": "https://api.openai.com/v1/chat/completions",
+        "serializeUrl": false,
+        "method": "post",
+        "headers": [
+          { "name": "Authorization", "value": "Bearer YOUR_OPENAI_API_KEY" },
+          { "name": "content-type", "value": "application/json" }
+        ],
+        "qs": [],
+        "bodyType": "raw",
+        "parseResponse": true,
+        "rejectUnauthorized": true,
+        "followRedirect": true,
+        "gzip": true,
+        "contentType": "application/json",
+        "data": "{\"model\":\"gpt-4o\",\"messages\":[{\"role\":\"system\",\"content\":\"Eres un experto ejecutor de tareas. Recibirás un plan estructurado y debes ejecutarlo produciendo el resultado solicitado de forma completa, precisa y de alta calidad.\"},{\"role\":\"user\",\"content\":\"Tarea original: {{1.body.prompt}}\\n\\nPlan a seguir:\\n{{2.data.content[1].text}}\\n\\nEjecuta este plan y produce el resultado final completo.\"}]}"
+      },
+      "metadata": {
+        "designer": { "x": 315, "y": 0 },
+        "restore": {}
+      }
+    },
+    {
+      "id": 4,
+      "module": "http:ActionSendData",
+      "version": 3,
+      "parameters": {
+        "handleErrors": false,
+        "useNewZLibDecompression": true
+      },
+      "mapper": {
+        "url": "https://api.anthropic.com/v1/messages",
+        "serializeUrl": false,
+        "method": "post",
+        "headers": [
+          { "name": "x-api-key", "value": "YOUR_ANTHROPIC_API_KEY" },
+          { "name": "anthropic-version", "value": "2023-06-01" },
+          { "name": "content-type", "value": "application/json" }
+        ],
+        "qs": [],
+        "bodyType": "raw",
+        "parseResponse": true,
+        "rejectUnauthorized": true,
+        "followRedirect": true,
+        "gzip": true,
+        "contentType": "application/json",
+        "data": "{\"model\":\"claude-opus-4-6\",\"max_tokens\":4096,\"system\":\"Eres un editor experto y revisor crítico. Tu trabajo es mejorar el contenido generado: corrige errores, mejora la claridad, añade profundidad donde falte y asegura coherencia. Devuelve ÚNICAMENTE el contenido mejorado, sin explicaciones de los cambios realizados.\",\"messages\":[{\"role\":\"user\",\"content\":\"Tarea original: {{1.body.prompt}}\\n\\nContenido a revisar y mejorar:\\n{{3.data.choices[1].message.content}}\"}]}"
+      },
+      "metadata": {
+        "designer": { "x": 615, "y": 0 },
+        "restore": {}
+      }
+    },
+    {
+      "id": 5,
+      "module": "webhook:WebhookRespond",
+      "version": 1,
+      "parameters": {},
+      "mapper": {
+        "status": "200",
+        "headers": [
+          { "name": "content-type", "value": "application/json" }
+        ],
+        "body": "{\"status\":\"success\",\"pipeline\":\"Claude → GPT-4 → Claude\",\"prompt_original\":\"{{1.body.prompt}}\",\"plan_claude\":\"{{2.data.content[1].text}}\",\"ejecucion_gpt4\":\"{{3.data.choices[1].message.content}}\",\"resultado_final\":\"{{4.data.content[1].text}}\"}"
+      },
+      "metadata": {
+        "designer": { "x": 915, "y": 0 },
+        "restore": {}
+      }
+    }
+  ],
+  "metadata": {
+    "instant": true,
+    "version": 1,
+    "scenario": {
+      "roundtrips": 1,
+      "maxErrors": 3,
+      "autoCommit": true,
+      "autoCommitTriggerLast": true,
+      "sequential": true,
+      "confidential": false,
+      "dataloss": false,
+      "dlq": false,
+      "freshVariables": false
+    },
+    "designer": {
+      "orphans": []
+    },
+    "zone": "eu1.make.com"
+  }
+}

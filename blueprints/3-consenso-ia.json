@@ -1,0 +1,190 @@
+{
+  "name": "3 - Consenso Multi-IA: Claude + GPT-4 + Gemini → Síntesis",
+  "flow": [
+    {
+      "id": 1,
+      "module": "webhook:CustomWebHook",
+      "version": 1,
+      "parameters": {
+        "hook": null,
+        "maxResults": 1
+      },
+      "mapper": {},
+      "metadata": {
+        "designer": { "x": -285, "y": 0 },
+        "restore": {
+          "parameters": {
+            "hook": {
+              "label": "Consenso IA Webhook",
+              "data": { "editable": true }
+            }
+          }
+        },
+        "parameters": [
+          { "name": "hook", "type": "hook:apihook", "label": "Webhook", "required": true },
+          { "name": "maxResults", "type": "number", "label": "Máximo de resultados" }
+        ],
+        "expect": [
+          { "name": "question", "type": "text", "label": "Pregunta o tema a consultar", "required": true }
+        ]
+      }
+    },
+    {
+      "id": 2,
+      "module": "http:ActionSendData",
+      "version": 3,
+      "parameters": {
+        "handleErrors": false,
+        "useNewZLibDecompression": true
+      },
+      "mapper": {
+        "url": "https://api.anthropic.com/v1/messages",
+        "serializeUrl": false,
+        "method": "post",
+        "headers": [
+          { "name": "x-api-key", "value": "YOUR_ANTHROPIC_API_KEY" },
+          { "name": "anthropic-version", "value": "2023-06-01" },
+          { "name": "content-type", "value": "application/json" }
+        ],
+        "qs": [],
+        "bodyType": "raw",
+        "parseResponse": true,
+        "rejectUnauthorized": true,
+        "followRedirect": true,
+        "gzip": true,
+        "contentType": "application/json",
+        "data": "{\"model\":\"claude-opus-4-6\",\"max_tokens\":2048,\"system\":\"Eres Claude, un asistente IA de Anthropic. Responde a la siguiente pregunta de forma completa, reflexiva y fundamentada. Sé objetivo y basa tu respuesta en el mejor conocimiento disponible.\",\"messages\":[{\"role\":\"user\",\"content\":\"{{1.body.question}}\"}]}"
+      },
+      "metadata": {
+        "designer": { "x": 15, "y": -250 },
+        "restore": {}
+      }
+    },
+    {
+      "id": 3,
+      "module": "http:ActionSendData",
+      "version": 3,
+      "parameters": {
+        "handleErrors": false,
+        "useNewZLibDecompression": true
+      },
+      "mapper": {
+        "url": "https://api.openai.com/v1/chat/completions",
+        "serializeUrl": false,
+        "method": "post",
+        "headers": [
+          { "name": "Authorization", "value": "Bearer YOUR_OPENAI_API_KEY" },
+          { "name": "content-type", "value": "application/json" }
+        ],
+        "qs": [],
+        "bodyType": "raw",
+        "parseResponse": true,
+        "rejectUnauthorized": true,
+        "followRedirect": true,
+        "gzip": true,
+        "contentType": "application/json",
+        "data": "{\"model\":\"gpt-4o\",\"messages\":[{\"role\":\"system\",\"content\":\"Eres GPT-4o, un asistente IA de OpenAI. Responde a la siguiente pregunta de forma completa, reflexiva y fundamentada. Sé objetivo y basa tu respuesta en el mejor conocimiento disponible.\"},{\"role\":\"user\",\"content\":\"{{1.body.question}}\"}]}"
+      },
+      "metadata": {
+        "designer": { "x": 15, "y": 0 },
+        "restore": {}
+      }
+    },
+    {
+      "id": 4,
+      "module": "http:ActionSendData",
+      "version": 3,
+      "parameters": {
+        "handleErrors": false,
+        "useNewZLibDecompression": true
+      },
+      "mapper": {
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=YOUR_GEMINI_API_KEY",
+        "serializeUrl": false,
+        "method": "post",
+        "headers": [
+          { "name": "content-type", "value": "application/json" }
+        ],
+        "qs": [],
+        "bodyType": "raw",
+        "parseResponse": true,
+        "rejectUnauthorized": true,
+        "followRedirect": true,
+        "gzip": true,
+        "contentType": "application/json",
+        "data": "{\"system_instruction\":{\"parts\":[{\"text\":\"Eres Gemini, un asistente IA de Google. Responde a la siguiente pregunta de forma completa, reflexiva y fundamentada. Sé objetivo y basa tu respuesta en el mejor conocimiento disponible.\"}]},\"contents\":[{\"parts\":[{\"text\":\"{{1.body.question}}\"}]}]}"
+      },
+      "metadata": {
+        "designer": { "x": 15, "y": 250 },
+        "restore": {}
+      }
+    },
+    {
+      "id": 5,
+      "module": "http:ActionSendData",
+      "version": 3,
+      "parameters": {
+        "handleErrors": false,
+        "useNewZLibDecompression": true
+      },
+      "mapper": {
+        "url": "https://api.anthropic.com/v1/messages",
+        "serializeUrl": false,
+        "method": "post",
+        "headers": [
+          { "name": "x-api-key", "value": "YOUR_ANTHROPIC_API_KEY" },
+          { "name": "anthropic-version", "value": "2023-06-01" },
+          { "name": "content-type", "value": "application/json" }
+        ],
+        "qs": [],
+        "bodyType": "raw",
+        "parseResponse": true,
+        "rejectUnauthorized": true,
+        "followRedirect": true,
+        "gzip": true,
+        "contentType": "application/json",
+        "data": "{\"model\":\"claude-opus-4-6\",\"max_tokens\":4096,\"system\":\"Eres un sintetizador de información experto. Recibirás la misma pregunta respondida por tres modelos de IA diferentes (Claude, GPT-4 y Gemini). Tu tarea es:\\n1. Identificar los puntos de acuerdo entre los tres modelos\\n2. Señalar diferencias o perspectivas complementarias\\n3. Producir una respuesta final unificada que incorpore los mejores elementos de cada respuesta\\n4. Indicar brevemente si hay algún punto donde las IAs difieren significativamente\\n\\nSé objetivo, imparcial y produce la respuesta más completa y precisa posible.\",\"messages\":[{\"role\":\"user\",\"content\":\"Pregunta original: {{1.body.question}}\\n\\n---\\nRESPUESTA DE CLAUDE:\\n{{2.data.content[1].text}}\\n\\n---\\nRESPUESTA DE GPT-4:\\n{{3.data.choices[1].message.content}}\\n\\n---\\nRESPUESTA DE GEMINI:\\n{{4.data.candidates[1].content.parts[1].text}}\\n\\n---\\nPor favor, sintetiza estas tres respuestas en una respuesta final unificada.\"}]}"
+      },
+      "metadata": {
+        "designer": { "x": 615, "y": 0 },
+        "restore": {}
+      }
+    },
+    {
+      "id": 6,
+      "module": "webhook:WebhookRespond",
+      "version": 1,
+      "parameters": {},
+      "mapper": {
+        "status": "200",
+        "headers": [
+          { "name": "content-type", "value": "application/json" }
+        ],
+        "body": "{\"status\":\"success\",\"pipeline\":\"Claude + GPT-4 + Gemini → Síntesis Claude\",\"pregunta\":\"{{1.body.question}}\",\"respuestas\":{\"claude\":\"{{2.data.content[1].text}}\",\"gpt4\":\"{{3.data.choices[1].message.content}}\",\"gemini\":\"{{4.data.candidates[1].content.parts[1].text}}\"},\"consenso\":\"{{5.data.content[1].text}}\"}"
+      },
+      "metadata": {
+        "designer": { "x": 915, "y": 0 },
+        "restore": {}
+      }
+    }
+  ],
+  "metadata": {
+    "instant": true,
+    "version": 1,
+    "scenario": {
+      "roundtrips": 1,
+      "maxErrors": 3,
+      "autoCommit": true,
+      "autoCommitTriggerLast": true,
+      "sequential": true,
+      "confidential": false,
+      "dataloss": false,
+      "dlq": false,
+      "freshVariables": false
+    },
+    "designer": {
+      "orphans": []
+    },
+    "zone": "eu1.make.com"
+  }
+}
