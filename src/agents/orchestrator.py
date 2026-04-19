@@ -10,6 +10,7 @@ from src.agents.desarrollador import AgenteDesarrollador
 from src.agents.marketing import AgenteMarketing
 from src.agents.analista import AgenteAnalista
 from src.agents.trader import AgenteTrader
+from src.agents.media import AgenteMedia
 
 # ── Agentes especializados — Inmobiliaria ─────────────────────────
 from src.agents.lead_manager import AgenteLeads
@@ -27,6 +28,7 @@ desarrollador → Código, webs, apps, APIs, automatizaciones, scripts, bases de
 marketing     → Estrategia de marketing, copies, contenido, embudos, anuncios, redes sociales para cualquier negocio
 analista      → Reportes, KPIs, métricas, análisis financiero, dashboards, datos de cualquier negocio
 trader        → Trading de acciones, criptomonedas, ETFs, análisis técnico, señales de compra/venta, portafolio, inversiones
+media         → Editar video, cortar clips, crear reels, transcribir, extraer audio, podcast, ebooks, fotografía, contenido para redes
 
 === AGENTES ESPECIALIZADOS — INMOBILIARIA ===
 inmobiliaria_leads     → CRM: registrar, actualizar o consultar clientes/prospectos inmobiliarios
@@ -51,6 +53,7 @@ class Orquestador:
             "marketing": AgenteMarketing,
             "analista": AgenteAnalista,
             "trader": AgenteTrader,
+            "media": AgenteMedia,
             # Inmobiliaria
             "inmobiliaria_leads": AgenteLeads,
             "inmobiliaria_contenido": AgenteContenido,
@@ -63,6 +66,7 @@ class Orquestador:
             "marketing": "Marketing",
             "analista": "Analista",
             "trader": "Trader",
+            "media": "Editor de Media",
             "inmobiliaria_leads": "Inmobiliaria — Leads",
             "inmobiliaria_contenido": "Inmobiliaria — Contenido",
             "inmobiliaria_clientes": "Inmobiliaria — Clientes",
