@@ -1,0 +1,28 @@
+# Entornos virtuales
+.venv/
+venv/
+env/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Credenciales y secretos — NUNCA subir al repo
+.env
+token.json
+credentials.json
+*.p12
+*.key
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# macOS
+.DS_Store
+
+# Logs
+*.log
+logs/
