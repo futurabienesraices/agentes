@@ -1,0 +1,103 @@
+{
+  "name": "1 — Pipeline Secuencial (Claude → GPT-4 → Claude)",
+  "nodes": [
+    {
+      "id": "webhook-entrada",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 300],
+      "parameters": {
+        "path": "pipeline-ia",
+        "httpMethod": "POST",
+        "responseMode": "responseNode"
+      }
+    },
+    {
+      "id": "claude-planifica",
+      "name": "Claude — Planifica",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [440, 300],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "x-api-key", "value": "={{ $env.ANTHROPIC_API_KEY }}" },
+            { "name": "anthropic-version", "value": "2023-06-01" },
+            { "name": "content-type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={\n  \"model\": \"claude-sonnet-4-6\",\n  \"max_tokens\": 1024,\n  \"system\": \"Eres un planificador experto. Analiza el prompt del usuario y genera un plan de acción detallado y estructurado que otra IA pueda ejecutar paso a paso. Responde solo con el plan.\",\n  \"messages\": [{ \"role\": \"user\", \"content\": \"Prompt: {{ $json.body.prompt }}\\nContexto: {{ $json.body.context }}\" }]\n}"
+      }
+    },
+    {
+      "id": "gpt4-ejecuta",
+      "name": "GPT-4 — Ejecuta",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [680, 300],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "=Bearer {{ $env.OPENAI_API_KEY }}" },
+            { "name": "content-type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={\n  \"model\": \"gpt-4o\",\n  \"messages\": [\n    { \"role\": \"system\", \"content\": \"Eres un ejecutor experto. Recibirás un plan detallado y debes ejecutarlo produciendo el resultado final solicitado.\" },\n    { \"role\": \"user\", \"content\": \"Ejecuta este plan:\\n{{ $json.content[0].text }}\" }\n  ]\n}"
+      }
+    },
+    {
+      "id": "claude-revisa",
+      "name": "Claude — Revisa y Refina",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [920, 300],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "x-api-key", "value": "={{ $env.ANTHROPIC_API_KEY }}" },
+            { "name": "anthropic-version", "value": "2023-06-01" },
+            { "name": "content-type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={\n  \"model\": \"claude-sonnet-4-6\",\n  \"max_tokens\": 2048,\n  \"system\": \"Eres un revisor experto. Recibe un resultado generado por otra IA y mejóralo: corrige errores, mejora la claridad y asegura que sea completo y preciso.\",\n  \"messages\": [{ \"role\": \"user\", \"content\": \"Revisa y mejora este resultado:\\n{{ $json.choices[0].message.content }}\" }]\n}"
+      }
+    },
+    {
+      "id": "respuesta",
+      "name": "Respuesta Final",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1160, 300],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"resultado\": {{ JSON.stringify($json.content[0].text) }},\n  \"pipeline\": [\"Claude planificó\", \"GPT-4 ejecutó\", \"Claude revisó\"]\n}"
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": { "main": [[{ "node": "Claude — Planifica", "type": "main", "index": 0 }]] },
+    "Claude — Planifica": { "main": [[{ "node": "GPT-4 — Ejecuta", "type": "main", "index": 0 }]] },
+    "GPT-4 — Ejecuta": { "main": [[{ "node": "Claude — Revisa y Refina", "type": "main", "index": 0 }]] },
+    "Claude — Revisa y Refina": { "main": [[{ "node": "Respuesta Final", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" }
+}

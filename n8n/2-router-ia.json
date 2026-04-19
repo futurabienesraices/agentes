@@ -1,0 +1,173 @@
+{
+  "name": "2 — Router por Tipo de Tarea",
+  "nodes": [
+    {
+      "id": "webhook-entrada",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 300],
+      "parameters": {
+        "path": "router-ia",
+        "httpMethod": "POST",
+        "responseMode": "responseNode"
+      }
+    },
+    {
+      "id": "router",
+      "name": "Router por tipo",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [440, 300],
+      "parameters": {
+        "mode": "rules",
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": { "caseSensitive": false },
+                "conditions": [{ "leftValue": "={{ $json.body.type }}", "rightValue": "code", "operator": { "type": "string", "operation": "equals" } }]
+              },
+              "renameOutput": true,
+              "outputKey": "codigo"
+            },
+            {
+              "conditions": {
+                "options": { "caseSensitive": false },
+                "conditions": [{ "leftValue": "={{ $json.body.type }}", "rightValue": "creative", "operator": { "type": "string", "operation": "equals" } }]
+              },
+              "renameOutput": true,
+              "outputKey": "creativo"
+            },
+            {
+              "conditions": {
+                "options": { "caseSensitive": false },
+                "conditions": [{ "leftValue": "={{ $json.body.type }}", "rightValue": "analysis", "operator": { "type": "string", "operation": "equals" } }]
+              },
+              "renameOutput": true,
+              "outputKey": "analisis"
+            }
+          ]
+        },
+        "fallbackOutput": "extra"
+      }
+    },
+    {
+      "id": "gpt4-codigo",
+      "name": "GPT-4 — Código",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [680, 100],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "=Bearer {{ $env.OPENAI_API_KEY }}" },
+            { "name": "content-type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={\n  \"model\": \"gpt-4o\",\n  \"messages\": [\n    { \"role\": \"system\", \"content\": \"Eres un experto programador. Escribe código limpio, comentado y funcional.\" },\n    { \"role\": \"user\", \"content\": {{ JSON.stringify($('Webhook').item.json.body.prompt) }} }\n  ]\n}"
+      }
+    },
+    {
+      "id": "claude-creativo",
+      "name": "Claude — Creativo",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [680, 260],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "x-api-key", "value": "={{ $env.ANTHROPIC_API_KEY }}" },
+            { "name": "anthropic-version", "value": "2023-06-01" },
+            { "name": "content-type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={\n  \"model\": \"claude-sonnet-4-6\",\n  \"max_tokens\": 2048,\n  \"system\": \"Eres un escritor creativo excepcional. Genera contenido original, atractivo y de alta calidad.\",\n  \"messages\": [{ \"role\": \"user\", \"content\": {{ JSON.stringify($('Webhook').item.json.body.prompt) }} }]\n}"
+      }
+    },
+    {
+      "id": "claude-analisis",
+      "name": "Claude — Análisis",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [680, 420],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "x-api-key", "value": "={{ $env.ANTHROPIC_API_KEY }}" },
+            { "name": "anthropic-version", "value": "2023-06-01" },
+            { "name": "content-type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={\n  \"model\": \"claude-sonnet-4-6\",\n  \"max_tokens\": 2048,\n  \"system\": \"Eres un analista experto. Proporciona análisis profundos, estructurados y con conclusiones accionables.\",\n  \"messages\": [{ \"role\": \"user\", \"content\": {{ JSON.stringify($('Webhook').item.json.body.prompt) }} }]\n}"
+      }
+    },
+    {
+      "id": "gpt4-default",
+      "name": "GPT-4 — Default",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [680, 580],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "=Bearer {{ $env.OPENAI_API_KEY }}" },
+            { "name": "content-type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={\n  \"model\": \"gpt-4o\",\n  \"messages\": [\n    { \"role\": \"system\", \"content\": \"Eres un asistente útil y preciso.\" },\n    { \"role\": \"user\", \"content\": {{ JSON.stringify($('Webhook').item.json.body.prompt) }} }\n  ]\n}"
+      }
+    },
+    {
+      "id": "respuesta",
+      "name": "Respuesta",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [920, 300],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"resultado\": {{ JSON.stringify($json.content ? $json.content[0].text : $json.choices[0].message.content) }},\n  \"ia_usada\": {{ JSON.stringify($json.model) }}\n}"
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": { "main": [[{ "node": "Router por tipo", "type": "main", "index": 0 }]] },
+    "Router por tipo": {
+      "main": [
+        [{ "node": "GPT-4 — Código", "type": "main", "index": 0 }],
+        [{ "node": "Claude — Creativo", "type": "main", "index": 0 }],
+        [{ "node": "Claude — Análisis", "type": "main", "index": 0 }],
+        [{ "node": "GPT-4 — Default", "type": "main", "index": 0 }]
+      ]
+    },
+    "GPT-4 — Código": { "main": [[{ "node": "Respuesta", "type": "main", "index": 0 }]] },
+    "Claude — Creativo": { "main": [[{ "node": "Respuesta", "type": "main", "index": 0 }]] },
+    "Claude — Análisis": { "main": [[{ "node": "Respuesta", "type": "main", "index": 0 }]] },
+    "GPT-4 — Default": { "main": [[{ "node": "Respuesta", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" }
+}

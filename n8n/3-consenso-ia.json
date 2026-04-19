@@ -1,0 +1,145 @@
+{
+  "name": "3 — Consenso Multi-IA (Claude + GPT-4 + Gemini)",
+  "nodes": [
+    {
+      "id": "webhook-entrada",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 380],
+      "parameters": {
+        "path": "consenso-ia",
+        "httpMethod": "POST",
+        "responseMode": "responseNode"
+      }
+    },
+    {
+      "id": "claude-responde",
+      "name": "Claude",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [440, 200],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "x-api-key", "value": "={{ $env.ANTHROPIC_API_KEY }}" },
+            { "name": "anthropic-version", "value": "2023-06-01" },
+            { "name": "content-type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={\n  \"model\": \"claude-sonnet-4-6\",\n  \"max_tokens\": 1024,\n  \"messages\": [{ \"role\": \"user\", \"content\": {{ JSON.stringify($json.body.question) }} }]\n}"
+      }
+    },
+    {
+      "id": "gpt4-responde",
+      "name": "GPT-4",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [440, 380],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "=Bearer {{ $env.OPENAI_API_KEY }}" },
+            { "name": "content-type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={\n  \"model\": \"gpt-4o\",\n  \"messages\": [{ \"role\": \"user\", \"content\": {{ JSON.stringify($('Webhook').item.json.body.question) }} }]\n}"
+      }
+    },
+    {
+      "id": "gemini-responde",
+      "name": "Gemini",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [440, 560],
+      "parameters": {
+        "method": "POST",
+        "url": "=https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={{ $env.GEMINI_API_KEY }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "content-type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={\n  \"contents\": [{ \"parts\": [{ \"text\": {{ JSON.stringify($('Webhook').item.json.body.question) }} }] }]\n}"
+      }
+    },
+    {
+      "id": "agrupa",
+      "name": "Agrupa respuestas",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [680, 380],
+      "parameters": {
+        "mode": "combine",
+        "combinationMode": "multiplex"
+      }
+    },
+    {
+      "id": "claude-sintetiza",
+      "name": "Claude — Sintetiza",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [920, 380],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "x-api-key", "value": "={{ $env.ANTHROPIC_API_KEY }}" },
+            { "name": "anthropic-version", "value": "2023-06-01" },
+            { "name": "content-type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={\n  \"model\": \"claude-sonnet-4-6\",\n  \"max_tokens\": 2048,\n  \"system\": \"Eres un sintetizador experto. Recibes respuestas de diferentes IAs sobre la misma pregunta y generas una respuesta unificada, equilibrada y completa que combine los mejores puntos de cada una.\",\n  \"messages\": [{\n    \"role\": \"user\",\n    \"content\": \"Pregunta original: {{ $('Webhook').item.json.body.question }}\\n\\nRespuesta de Claude:\\n{{ $('Claude').item.json.content[0].text }}\\n\\nRespuesta de GPT-4:\\n{{ $('GPT-4').item.json.choices[0].message.content }}\\n\\nRespuesta de Gemini:\\n{{ $('Gemini').item.json.candidates[0].content.parts[0].text }}\\n\\nPor favor sintetiza estas tres perspectivas en una respuesta unificada.\"\n  }]\n}"
+      }
+    },
+    {
+      "id": "respuesta",
+      "name": "Respuesta Final",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1160, 380],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"sintesis\": {{ JSON.stringify($json.content[0].text) }},\n  \"respuestas_individuales\": {\n    \"claude\": {{ JSON.stringify($('Claude').item.json.content[0].text) }},\n    \"gpt4\": {{ JSON.stringify($('GPT-4').item.json.choices[0].message.content) }},\n    \"gemini\": {{ JSON.stringify($('Gemini').item.json.candidates[0].content.parts[0].text) }}\n  }\n}"
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          { "node": "Claude", "type": "main", "index": 0 },
+          { "node": "GPT-4", "type": "main", "index": 0 },
+          { "node": "Gemini", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Claude": { "main": [[{ "node": "Agrupa respuestas", "type": "main", "index": 0 }]] },
+    "GPT-4": { "main": [[{ "node": "Agrupa respuestas", "type": "main", "index": 1 }]] },
+    "Gemini": { "main": [[{ "node": "Agrupa respuestas", "type": "main", "index": 2 }]] },
+    "Agrupa respuestas": { "main": [[{ "node": "Claude — Sintetiza", "type": "main", "index": 0 }]] },
+    "Claude — Sintetiza": { "main": [[{ "node": "Respuesta Final", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" }
+}

@@ -1,20 +1,22 @@
-# Flujos de trabajo Multi-IA en Make.com
+# Flujos de trabajo Multi-IA — Make.com & n8n
 
-Colección de blueprints para Make.com que conectan diferentes inteligencias artificiales (Claude, GPT-4, Gemini) para que colaboren entre sí en distintos escenarios.
+Colección de workflows que conectan diferentes inteligencias artificiales (Claude, GPT-4, Gemini) para que colaboren entre sí. Disponibles para **Make.com** y **n8n** — elige la plataforma que prefieras, los flujos son equivalentes.
 
-## Blueprints disponibles
+## Workflows disponibles
 
-| Blueprint | Descripción |
-|-----------|-------------|
-| `1-pipeline-ia.json` | **Pipeline secuencial** — Claude planifica, GPT-4 ejecuta, Claude revisa |
-| `2-router-ia.json` | **Router por tipo de tarea** — Dirige cada tarea a la IA más adecuada |
-| `3-consenso-ia.json` | **Consenso multi-IA** — Claude + GPT-4 + Gemini responden y Claude sintetiza |
+| Workflow | Descripción |
+|----------|-------------|
+| `1-pipeline-ia` | **Pipeline secuencial** — Claude planifica, GPT-4 ejecuta, Claude revisa |
+| `2-router-ia` | **Router por tipo de tarea** — Dirige cada tarea a la IA más adecuada |
+| `3-consenso-ia` | **Consenso multi-IA** — Claude + GPT-4 + Gemini responden y Claude sintetiza |
+
+Cada workflow tiene su versión en `blueprints/` (Make.com) y en `n8n/` (n8n).
 
 ---
 
 ## Requisitos previos
 
-1. Cuenta en [Make.com](https://www.make.com)
+1. Cuenta en [Make.com](https://www.make.com) **o** instancia de [n8n](https://n8n.io) (self-hosted o cloud)
 2. Claves de API:
    - **Anthropic** (Claude): [console.anthropic.com](https://console.anthropic.com)
    - **OpenAI** (GPT-4): [platform.openai.com](https://platform.openai.com)
@@ -22,14 +24,19 @@ Colección de blueprints para Make.com que conectan diferentes inteligencias art
 
 ---
 
-## Cómo importar un blueprint
+## Cómo importar
 
-1. Abre tu cuenta en Make.com
-2. Ve a **Scenarios** → **Create a new scenario**
-3. Haz clic en los **tres puntos** (···) del editor → **Import Blueprint**
-4. Sube el archivo `.json` correspondiente
-5. Configura las conexiones HTTP y los **webhooks** que Make te pedirá
-6. Reemplaza los placeholders de API keys (ver sección siguiente)
+### Make.com
+1. Ve a **Scenarios** → **Create a new scenario**
+2. Tres puntos (···) → **Import Blueprint**
+3. Sube el archivo de `blueprints/`
+4. Configura las conexiones HTTP y webhooks que Make te pedirá
+
+### n8n
+1. Ve a **Workflows** → **Import from file**
+2. Sube el archivo de `n8n/`
+3. En **Settings → Variables** agrega `ANTHROPIC_API_KEY`, `OPENAI_API_KEY` y `GEMINI_API_KEY`
+4. Activa el workflow
 
 ---
 
@@ -130,7 +137,11 @@ Puedes copiar `.env.example` como guía de las variables necesarias.
 agentes/
 ├── README.md
 ├── .env.example
-└── blueprints/
+├── blueprints/          ← Workflows para Make.com
+│   ├── 1-pipeline-ia.json
+│   ├── 2-router-ia.json
+│   └── 3-consenso-ia.json
+└── n8n/                 ← Workflows equivalentes para n8n
     ├── 1-pipeline-ia.json
     ├── 2-router-ia.json
     └── 3-consenso-ia.json
