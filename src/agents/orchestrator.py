@@ -9,6 +9,7 @@ from src.agents.estratega import AgenteEstrategra
 from src.agents.desarrollador import AgenteDesarrollador
 from src.agents.marketing import AgenteMarketing
 from src.agents.analista import AgenteAnalista
+from src.agents.trader import AgenteTrader
 
 # ── Agentes especializados — Inmobiliaria ─────────────────────────
 from src.agents.lead_manager import AgenteLeads
@@ -16,27 +17,27 @@ from src.agents.content_creator import AgenteContenido
 from src.agents.client_service import AgenteClientes
 
 
-INSTRUCCIONES_ROUTER = f"""Eres el orquestador del equipo de IA de un emprendedor serial.
-El equipo tiene agentes generales y agentes especializados en inmobiliaria.
+INSTRUCCIONES_ROUTER = f"""Eres el orquestador del equipo de IA de un emprendedor serial con múltiples negocios.
+Clasifica la solicitud con una sola palabra. Sé preciso — elige el agente más específico para la tarea.
 
-Clasifica la solicitud y responde ÚNICAMENTE con una de estas palabras:
-
-=== AGENTES GENERALES (cualquier negocio o industria) ===
-- investigador  → Investigar mercados, competidores, tendencias, apps globales, cualquier tema
-- estratega     → Desarrollar ideas de negocio, validar oportunidades, planes de negocio, modelos de ingreso
-- desarrollador → Programar webs, apps, APIs, automatizaciones, scripts, cualquier código
-- marketing     → Estrategia de marketing, contenido, copies, embudos, lanzamientos para cualquier negocio
-- analista      → Reportes, KPIs, análisis financiero, métricas, forecasting para cualquier negocio
+=== AGENTES GENERALES ===
+investigador  → Investigar: mercados, apps, tendencias globales, competidores, tecnologías, cualquier tema de investigación
+estratega     → Ideas de negocio, validar oportunidades, modelos de ingreso, planes, estrategia empresarial, nuevos negocios
+desarrollador → Código, webs, apps, APIs, automatizaciones, scripts, bases de datos, bots
+marketing     → Estrategia de marketing, copies, contenido, embudos, anuncios, redes sociales para cualquier negocio
+analista      → Reportes, KPIs, métricas, análisis financiero, dashboards, datos de cualquier negocio
+trader        → Trading de acciones, criptomonedas, ETFs, análisis técnico, señales de compra/venta, portafolio, inversiones
 
 === AGENTES ESPECIALIZADOS — INMOBILIARIA ===
-- inmobiliaria_leads     → CRM de clientes/prospectos inmobiliarios, seguimiento, pipeline de ventas
-- inmobiliaria_contenido → Posts y marketing específico de propiedades en redes sociales
-- inmobiliaria_clientes  → Atención a clientes sobre propiedades, consultas, visitas
+inmobiliaria_leads     → CRM: registrar, actualizar o consultar clientes/prospectos inmobiliarios
+inmobiliaria_contenido → Crear posts, copies o publicar contenido específico de propiedades en redes
+inmobiliaria_clientes  → Atención a clientes: consultas, propiedades disponibles, visitas, información
 
-REGLA: Si la tarea es general o para un negocio diferente a inmobiliaria → usa agentes generales.
-Si es específicamente sobre propiedades, leads o clientes de la inmobiliaria → usa los especializados.
-
-SOLO responde con una de esas palabras exactas."""
+REGLAS DE ENRUTAMIENTO:
+- Trading/inversiones/mercados financieros → SIEMPRE trader
+- Inmobiliaria → especializados si es CRM/contenido/atención; analista si son reportes del negocio
+- Dudas entre estratega e investigador → investigador si busca datos, estratega si elabora un plan
+- Una sola palabra, sin explicación."""
 
 
 class Orquestador:
@@ -49,6 +50,7 @@ class Orquestador:
             "desarrollador": AgenteDesarrollador,
             "marketing": AgenteMarketing,
             "analista": AgenteAnalista,
+            "trader": AgenteTrader,
             # Inmobiliaria
             "inmobiliaria_leads": AgenteLeads,
             "inmobiliaria_contenido": AgenteContenido,
@@ -60,6 +62,7 @@ class Orquestador:
             "desarrollador": "Desarrollador",
             "marketing": "Marketing",
             "analista": "Analista",
+            "trader": "Trader",
             "inmobiliaria_leads": "Inmobiliaria — Leads",
             "inmobiliaria_contenido": "Inmobiliaria — Contenido",
             "inmobiliaria_clientes": "Inmobiliaria — Clientes",
