@@ -12,9 +12,9 @@ MODELO_RAPIDO = "claude-haiku-4-5-20251001"
 # ── Airtable ─────────────────────────────────────────────────────
 AIRTABLE_API_KEY = os.getenv("AIRTABLE_API_KEY", "")
 AIRTABLE_BASE_ID = os.getenv("AIRTABLE_BASE_ID", "")
-AIRTABLE_LEADS_TABLE = os.getenv("AIRTABLE_LEADS_TABLE", "Leads")
-AIRTABLE_PROPIEDADES_TABLE = os.getenv("AIRTABLE_PROPIEDADES_TABLE", "Propiedades")
-AIRTABLE_CLIENTES_TABLE = os.getenv("AIRTABLE_CLIENTES_TABLE", "Clientes")
+AIRTABLE_PROPIEDADES_TABLE = os.getenv("AIRTABLE_PROPIEDADES_TABLE", "Propiedades_FBR")
+AIRTABLE_MARKETING_TABLE = os.getenv("AIRTABLE_MARKETING_TABLE", "Marketing_FBR")
+AIRTABLE_CLIENTES_TABLE = os.getenv("AIRTABLE_CLIENTES_TABLE", "Clientes_FBR")
 
 # ── Notion ───────────────────────────────────────────────────────
 NOTION_API_KEY = os.getenv("NOTION_API_KEY", "")

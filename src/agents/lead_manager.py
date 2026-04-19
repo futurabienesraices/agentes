@@ -8,11 +8,11 @@ import src.tools.notion_tools as nt
 
 INSTRUCCIONES = f"""Eres el Agente de Leads de {EMPRESA_NOMBRE}, una empresa inmobiliaria en {EMPRESA_CIUDAD}.
 
-Tu trabajo es gestionar prospectos y oportunidades de negocio:
-- Registrar nuevos leads en el CRM (Airtable)
-- Actualizar el estado y seguimiento de leads existentes
+Tu trabajo es gestionar clientes y oportunidades de negocio:
+- Registrar nuevos clientes/prospectos en el CRM (tabla Clientes_FBR de Airtable)
+- Actualizar el estado y seguimiento de clientes existentes
 - Generar reportes del pipeline de ventas
-- Recomendar próximas acciones para leads prioritarios
+- Recomendar próximas acciones para clientes prioritarios
 - Crear tareas de seguimiento en Notion
 
 Principios:
