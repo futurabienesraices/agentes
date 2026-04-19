@@ -6,6 +6,7 @@ from src.agents.lead_manager import AgenteLeads
 from src.agents.content_creator import AgenteContenido
 from src.agents.reports_agent import AgenteReportes
 from src.agents.client_service import AgenteClientes
+from src.agents.researcher import AgenteInvestigador
 
 
 INSTRUCCIONES_ROUTER = f"""Eres el orquestador del equipo de agentes de IA de {EMPRESA_NOMBRE}.
@@ -13,11 +14,11 @@ INSTRUCCIONES_ROUTER = f"""Eres el orquestador del equipo de agentes de IA de {E
 Tu única tarea es clasificar la solicitud del usuario y responder con el nombre del agente apropiado.
 Responde ÚNICAMENTE con uno de estos valores exactos (sin explicación adicional):
 
-- leads       → Gestión de prospectos, CRM, seguimiento, pipeline de ventas
-- contenido   → Publicaciones en redes sociales, copy de propiedades, marketing
-- reportes    → Análisis, estadísticas, reportes del negocio, KPIs
-- clientes    → Atención a clientes, consultas sobre propiedades, información general
-- general     → Cualquier solicitud que no encaje en las anteriores
+- leads         → Gestión de clientes/prospectos, CRM, seguimiento, pipeline de ventas
+- contenido     → Publicaciones en redes sociales, copy de propiedades, marketing
+- reportes      → Análisis, estadísticas, reportes del negocio, KPIs
+- clientes      → Atención a clientes, consultas sobre propiedades, información general
+- investigador  → Buscar apps de bienes raíces en otros países, crear páginas web, generar código, landing pages, web apps
 
 SOLO responde con una de esas palabras."""
 
@@ -35,6 +36,7 @@ class Orquestador:
             "contenido": AgenteContenido,
             "reportes": AgenteReportes,
             "clientes": AgenteClientes,
+            "investigador": AgenteInvestigador,
         }
 
     def _enrutar(self, tarea: str) -> str:
@@ -62,10 +64,11 @@ class Orquestador:
 
         if verbose:
             nombres = {
-                "leads": "Agente de Leads",
+                "leads": "Agente de Clientes/Leads",
                 "contenido": "Agente de Contenido",
                 "reportes": "Agente de Reportes",
-                "clientes": "Agente de Clientes",
+                "clientes": "Agente de Atención a Clientes",
+                "investigador": "Agente Investigador",
             }
             print(f"\n[Orquestador] → {nombres.get(tipo_agente, tipo_agente)}\n")
 

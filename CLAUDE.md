@@ -51,12 +51,14 @@ python main.py --agente contenido "crea un post para esta casa de 3 recámaras e
 | `contenido` | Marketing y publicaciones | Airtable, Notion, Meta API, Drive |
 | `reportes` | Análisis y reportes | Airtable, Notion, Drive |
 | `clientes` | Atención al cliente | Airtable, Notion |
+| `investigador` | Busca apps globales y genera código web | Búsqueda web, Drive |
 | `auto` | Enrutamiento automático | Todos |
 
 ## Variables de entorno requeridas
 
 ```
-ANTHROPIC_API_KEY      # API key de Anthropic
+ANTHROPIC_API_KEY      # API key de Anthropic (obligatoria)
+TAVILY_API_KEY         # Búsqueda web para el Agente Investigador (tavily.com)
 AIRTABLE_API_KEY       # Personal Access Token de Airtable
 AIRTABLE_BASE_ID       # ID de la base (appXXXX)
 NOTION_API_KEY         # Integration token de Notion
