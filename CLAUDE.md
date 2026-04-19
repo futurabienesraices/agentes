@@ -43,16 +43,24 @@ python main.py "dame el reporte de leads de hoy"
 python main.py --agente contenido "crea un post para esta casa de 3 recámaras en Polanco"
 ```
 
-## Agentes disponibles
+## Arquitectura de dos capas
 
+### Agentes Generales (cualquier negocio)
 | Agente | Descripción | Herramientas |
 |--------|------------|--------------|
-| `leads` | Gestión de prospectos y pipeline | Airtable, Notion |
-| `contenido` | Marketing y publicaciones | Airtable, Notion, Meta API, Drive |
-| `reportes` | Análisis y reportes | Airtable, Notion, Drive |
-| `clientes` | Atención al cliente | Airtable, Notion |
-| `investigador` | Busca apps globales y genera código web | Búsqueda web, Drive |
-| `auto` | Enrutamiento automático | Todos |
+| `investigador` | Investiga mercados, apps, tendencias globales | Búsqueda web, Drive |
+| `estratega` | Desarrolla y valida ideas de negocio, planes | Búsqueda web, Drive |
+| `desarrollador` | Programa webs, apps, APIs, automatizaciones | Archivos, Búsqueda, Drive |
+| `marketing` | Estrategia y contenido para cualquier negocio | Búsqueda, Meta API, Drive |
+| `analista` | Reportes, KPIs, análisis financiero | Airtable, Notion, Drive |
+| `trader` | Análisis de mercados, estrategias de trading | Búsqueda, APIs de mercado |
+
+### Agentes Especializados — Inmobiliaria
+| Agente | Descripción | Herramientas |
+|--------|------------|--------------|
+| `inmobiliaria_leads` | CRM de clientes/prospectos | Airtable, Notion |
+| `inmobiliaria_contenido` | Posts y marketing de propiedades | Airtable, Meta API, Drive |
+| `inmobiliaria_clientes` | Atención al cliente | Airtable, Notion |
 
 ## Variables de entorno requeridas
 
