@@ -172,9 +172,18 @@ def err(msg): print(f"{RED}  ✗{NC} {msg}")
 def inf(msg): print(f"{YELLOW}  →{NC} {msg}")
 
 
+print("\n=== COLUMNAS EN AIRTABLE ===")
+muestra_prop = tbl_prop.all(max_records=1)
+muestra_cli  = tbl_cli.all(max_records=1)
+cols_prop = list(muestra_prop[0]["fields"].keys()) if muestra_prop else []
+cols_cli  = list(muestra_cli[0]["fields"].keys())  if muestra_cli  else []
+print(f"  Propiedades_FBR: {cols_prop}")
+print(f"  Clientes_FBR:    {cols_cli}")
+print("\nCopia estas columnas y compártelas para ajustar el script.")
+import sys; sys.exit(0)
+
 print("\n=== IMPORTANDO PROPIEDADES ===")
-# Verificar cuáles ya existen
-existentes_prop = {r["fields"].get("Titulo", "") for r in tbl_prop.all(fields=["Titulo"])}
+existentes_prop = {r["fields"].get("Titulo", "") for r in tbl_prop.all()}
 
 for p in PROPIEDADES:
     if p["Titulo"] in existentes_prop:
