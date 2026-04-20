@@ -32,7 +32,7 @@ PROPIEDADES = [
         "Tipo": "Casa", "Estado": "Disponible",
         "Habitaciones": 3, "Baños": 2,
         "Ubicación": "Urb. El Trébol III y IV, Santa Ana",
-        "Notas": "Venta $50,000 | 70m² | 3 niveles. 3ra planta: cuarto máster vista 360°. 2da: hab con baño. 1ra: 2 hab, baño social, sala, comedor-cocina, patio. Techo Sincalum 2021. 120/220V. Tel: 6027-2418",
+        "Notas": "Venta $100,000 | 70m² lote | 3 niveles. 3ra planta: cuarto máster vista 360°. 2da: hab con baño. 1ra: 2 hab, baño social, sala, comedor-cocina, patio. Techo Sincalum 2021. 120/220V. Tel: 6027-2418",
     },
     {
         "Nombre de la propiedad": "Casa Residencial Las Mercedes",
