@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 verificar.py — Verifica que todas las integraciones estén configuradas.
-Ejecuta: python verificar.py
+Ejecuta: python3 verificar.py
 """
 import os
 import sys
@@ -67,27 +67,26 @@ if anthropic_ok:
 
 print()
 
-# ── AIRTABLE ─────────────────────────────────────────────────
+# ── AIRTABLE (3 bases separadas) ─────────────────────────────────
 print(f"{BOLD}[ AIRTABLE ]{NC}")
 at_key = check_var("Airtable API Key", "AIRTABLE_API_KEY")
-at_base = check_var("Airtable Base ID", "AIRTABLE_BASE_ID")
 
-if at_key and at_base:
-    def test_airtable():
-        from pyairtable import Api
-        api = Api(os.environ["AIRTABLE_API_KEY"])
-        base = api.base(os.environ["AIRTABLE_BASE_ID"])
-        tablas = [t.name for t in base.tables()]
-        esperadas = [
-            os.getenv("AIRTABLE_CLIENTES_TABLE", "Clientes_FBR"),
-            os.getenv("AIRTABLE_PROPIEDADES_TABLE", "Propiedades_FBR"),
-            os.getenv("AIRTABLE_MARKETING_TABLE", "Marketing_FBR"),
-        ]
-        encontradas = [t for t in esperadas if t in tablas]
-        faltantes = [t for t in esperadas if t not in tablas]
-        if faltantes:
-            raise Exception(f"Tablas no encontradas: {faltantes}. Disponibles: {tablas}")
-    check("Conexión Airtable + tablas FBR", test_airtable)
+BASES = {
+    "Clientes_FBR":    ("AIRTABLE_BASE_CLIENTES",    "appb4XJ04yi27i2X4"),
+    "Marketing_FBR":   ("AIRTABLE_BASE_MARKETING",   "appizAgtBCoVllOCI"),
+    "Propiedades_FBR": ("AIRTABLE_BASE_PROPIEDADES", "appqYlISCjGnla9EN"),
+}
+
+if at_key:
+    for tabla, (env_var, default_id) in BASES.items():
+        base_id = os.getenv(env_var, default_id)
+        def test_base(t=tabla, b=base_id):
+            from pyairtable import Api
+            api = Api(os.environ["AIRTABLE_API_KEY"])
+            tbl = api.table(b, t)
+            # intenta leer máx 1 registro para validar conexión
+            tbl.all(max_records=1)
+        check(f"Airtable → {tabla} (base: {base_id[:8]}...)", test_base)
 
 print()
 
@@ -131,7 +130,7 @@ print()
 print(f"{BOLD}[ TRADING ]{NC}")
 alpaca_key = check_var("Alpaca API Key", "ALPACA_API_KEY", opcional=True)
 if alpaca_key:
-    modo = "PAPER" if os.getenv("ALPACA_PAPER", "true").lower() == "true" else "⚠️  REAL (dinero real)"
+    modo = "PAPER (simulado)" if os.getenv("ALPACA_PAPER", "true").lower() == "true" else "⚠️  REAL (dinero real)"
     warn(f"Modo Alpaca: {modo}")
     resultados["warn"] += 1
 
@@ -140,7 +139,7 @@ def test_yfinance():
     t = yf.Ticker("AAPL")
     h = t.history(period="1d")
     assert not h.empty
-check("yfinance (datos de mercado gratis)", test_yfinance)
+check("yfinance (datos de mercado)", test_yfinance)
 
 print()
 
@@ -167,7 +166,7 @@ try:
     ok("Whisper instalado (transcripción de audio)")
     resultados["ok"] += 1
 except ImportError:
-    warn("Whisper no instalado (opcional)\n     Instala con: pip install openai-whisper")
+    warn("Whisper no instalado (opcional para transcripción)")
     resultados["warn"] += 1
 
 try:
@@ -175,20 +174,17 @@ try:
     ok("fpdf2 instalado (creación de ebooks)")
     resultados["ok"] += 1
 except ImportError:
-    warn("fpdf2 no instalado (opcional)\n     Instala con: pip install fpdf2")
+    warn("fpdf2 no instalado")
     resultados["warn"] += 1
 
 # ── RESUMEN ───────────────────────────────────────────────────
 print(f"\n{BOLD}================================================{NC}")
-total = sum(resultados.values())
-print(f"  {GREEN}✓ OK:{NC}      {resultados['ok']}")
-print(f"  {YELLOW}⚠  Opcionales:{NC} {resultados['warn']}")
-print(f"  {RED}✗ Faltan:{NC}   {resultados['fail']}")
+print(f"  {GREEN}✓ OK:{NC}          {resultados['ok']}")
+print(f"  {YELLOW}⚠  Opcionales:{NC}   {resultados['warn']}")
+print(f"  {RED}✗ Faltan:{NC}       {resultados['fail']}")
 print(f"{BOLD}================================================{NC}")
 
 if resultados["fail"] == 0:
-    print(f"\n{GREEN}{BOLD}  Sistema listo. Ejecuta: python main.py{NC}\n")
-elif resultados["fail"] == 1 and not os.getenv("ANTHROPIC_API_KEY"):
-    print(f"\n{RED}  Solo falta la ANTHROPIC_API_KEY en el .env{NC}\n")
+    print(f"\n{GREEN}{BOLD}  ✅ Sistema listo. Ejecuta: python3 main.py{NC}\n")
 else:
-    print(f"\n{YELLOW}  Agrega las keys faltantes en el archivo .env{NC}\n")
+    print(f"\n{YELLOW}  Revisa los items marcados con ✗{NC}\n")
