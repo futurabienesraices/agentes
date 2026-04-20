@@ -5,9 +5,9 @@ Equipo de Agentes IA — Futura Bienes Raíces
 Punto de entrada principal para interactuar con el equipo de agentes.
 
 Uso:
-    python main.py                          # Modo interactivo
-    python main.py "texto de la tarea"      # Ejecutar tarea directamente
-    python main.py --agente leads "tarea"   # Usar agente específico
+    python main.py                                    # Modo interactivo
+    python main.py "texto de la tarea"               # Ejecutar tarea directamente
+    python main.py --agente trader "analiza AAPL"    # Usar agente específico
 """
 from __future__ import annotations
 import sys
@@ -19,18 +19,27 @@ from rich.text import Text
 console = Console()
 
 AGENTES_DISPONIBLES = {
-    "leads": "Gestión de prospectos y CRM",
-    "contenido": "Marketing y publicaciones en redes",
-    "reportes": "Reportes y análisis del negocio",
-    "clientes": "Atención al cliente y consultas",
-    "auto": "Enrutamiento automático (por defecto)",
+    # Generales
+    "investigador":           "Investiga mercados, apps y tendencias",
+    "estratega":              "Ideas de negocio, planes, estrategia empresarial",
+    "desarrollador":          "Código, webs, apps, APIs y automatizaciones",
+    "marketing":              "Estrategia de marketing para cualquier negocio",
+    "analista":               "Reportes, KPIs y análisis financiero",
+    "trader":                 "Trading: acciones, cripto, análisis técnico",
+    "media":                  "Editor de video, audio, reels, ebooks",
+    # Inmobiliaria
+    "inmobiliaria_leads":     "CRM: registrar y consultar clientes/prospectos",
+    "inmobiliaria_contenido": "Posts y marketing de propiedades en redes",
+    "inmobiliaria_clientes":  "Atención al cliente y propiedades disponibles",
+    # Auto
+    "auto":                   "Enrutamiento automático (por defecto)",
 }
 
 BANNER = """
-╔══════════════════════════════════════════════════════╗
-║        FUTURA BIENES RAÍCES — EQUIPO IA              ║
-║  Leads · Contenido · Reportes · Atención al Cliente  ║
-╚══════════════════════════════════════════════════════╝
+╔══════════════════════════════════════════════════════════════╗
+║         FUTURA BIENES RAÍCES — EQUIPO IA                     ║
+║  Investigador · Estratega · Trader · Media · Inmobiliaria    ║
+╚══════════════════════════════════════════════════════════════╝
 """
 
 
@@ -77,7 +86,7 @@ def main() -> None:
         description="Equipo de Agentes IA — Futura Bienes Raíces",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="\n".join(
-            [f"  {k:10} → {v}" for k, v in AGENTES_DISPONIBLES.items()]
+            [f"  {k:25} → {v}" for k, v in AGENTES_DISPONIBLES.items()]
         ),
     )
     parser.add_argument(
@@ -90,7 +99,8 @@ def main() -> None:
         "-a",
         choices=list(AGENTES_DISPONIBLES.keys()),
         default="auto",
-        help="Agente a usar (por defecto: auto)",
+        metavar="AGENTE",
+        help=f"Agente a usar (por defecto: auto). Opciones: {', '.join(AGENTES_DISPONIBLES.keys())}",
     )
     args = parser.parse_args()
 
