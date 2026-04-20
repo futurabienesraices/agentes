@@ -7,7 +7,10 @@ from src.config import (
     AIRTABLE_PROPIEDADES_TABLE, AIRTABLE_MARKETING_TABLE, AIRTABLE_CLIENTES_TABLE,
 )
 
-# Cada tabla usa su propio Base ID
+# Columnas reales en Airtable (detectadas el 2025-04-20)
+# Propiedades_FBR: Nombre de la propiedad, Tipo, Estado, Habitaciones, Baños, Ubicación, Notas
+# Clientes_FBR:    Nombre, Teléfono, Estado del cliente, Propiedades interesadas, Notas
+
 _TABLA_BASE = {
     AIRTABLE_CLIENTES_TABLE:    AIRTABLE_BASE_CLIENTES,
     AIRTABLE_MARKETING_TABLE:   AIRTABLE_BASE_MARKETING,
@@ -21,22 +24,14 @@ def _get_table(nombre_tabla: str):
     return Api(AIRTABLE_API_KEY).table(base_id, nombre_tabla)
 
 
-# ── Definiciones de herramientas para Claude ─────────────────────
-
 TOOLS_AIRTABLE: list[dict] = [
     {
         "name": "airtable_listar_clientes",
-        "description": (
-            "Lista los clientes/prospectos del CRM en Airtable (tabla Clientes_FBR). "
-            "Filtra por estado si se indica."
-        ),
+        "description": "Lista los clientes/prospectos del CRM en Airtable. Filtra por estado si se indica.",
         "input_schema": {
             "type": "object",
             "properties": {
-                "estado": {
-                    "type": "string",
-                    "description": "Filtrar por estado (opcional), ej: Nuevo, Contactado, Calificado, Cerrado",
-                },
+                "estado": {"type": "string", "description": "Nuevo, Contactado, Calificado, Cerrado"},
                 "limite": {"type": "integer", "default": 20},
             },
             "required": [],
@@ -44,20 +39,16 @@ TOOLS_AIRTABLE: list[dict] = [
     },
     {
         "name": "airtable_crear_cliente",
-        "description": "Registra un nuevo cliente o prospecto en Airtable (tabla Clientes_FBR).",
+        "description": "Registra un nuevo cliente o prospecto en Airtable.",
         "input_schema": {
             "type": "object",
             "properties": {
-                "nombre": {"type": "string", "description": "Nombre completo"},
-                "telefono": {"type": "string"},
-                "email": {"type": "string"},
-                "interes": {"type": "string", "description": "Qué tipo de propiedad busca"},
+                "nombre":      {"type": "string"},
+                "telefono":    {"type": "string"},
+                "interes":     {"type": "string", "description": "Qué tipo de propiedad busca"},
                 "presupuesto": {"type": "string"},
-                "origen": {
-                    "type": "string",
-                    "enum": ["Instagram", "Facebook", "WhatsApp", "Referido", "Portal", "Otro"],
-                },
-                "notas": {"type": "string"},
+                "origen":      {"type": "string", "description": "WhatsApp, Instagram, Referido, etc."},
+                "notas":       {"type": "string"},
             },
             "required": ["nombre"],
         },
@@ -68,9 +59,9 @@ TOOLS_AIRTABLE: list[dict] = [
         "input_schema": {
             "type": "object",
             "properties": {
-                "record_id": {"type": "string", "description": "ID del registro (rec...)"},
-                "estado": {"type": "string"},
-                "notas": {"type": "string"},
+                "record_id":        {"type": "string", "description": "ID del registro (rec...)"},
+                "estado":           {"type": "string", "description": "Nuevo, Contactado, Calificado, Cerrado"},
+                "notas":            {"type": "string"},
                 "siguiente_accion": {"type": "string"},
             },
             "required": ["record_id"],
@@ -78,16 +69,12 @@ TOOLS_AIRTABLE: list[dict] = [
     },
     {
         "name": "airtable_listar_propiedades",
-        "description": "Lista propiedades del inventario en Airtable (tabla Propiedades_FBR).",
+        "description": "Lista propiedades del inventario en Airtable.",
         "input_schema": {
             "type": "object",
             "properties": {
-                "tipo": {
-                    "type": "string",
-                    "enum": ["Casa", "Departamento", "Terreno", "Local", "Oficina", "Bodega"],
-                },
-                "operacion": {"type": "string", "enum": ["Venta", "Renta"]},
-                "precio_max": {"type": "number"},
+                "tipo":   {"type": "string", "description": "Casa, Terreno, Local, Departamento, etc."},
+                "estado": {"type": "string", "description": "Disponible, Vendida, Rentada"},
                 "limite": {"type": "integer", "default": 10},
             },
             "required": [],
@@ -95,37 +82,29 @@ TOOLS_AIRTABLE: list[dict] = [
     },
     {
         "name": "airtable_crear_propiedad",
-        "description": "Registra una nueva propiedad en el inventario de Airtable (tabla Propiedades_FBR).",
+        "description": "Registra una nueva propiedad en el inventario de Airtable.",
         "input_schema": {
             "type": "object",
             "properties": {
-                "titulo": {"type": "string", "description": "Nombre o título de la propiedad"},
-                "tipo": {
-                    "type": "string",
-                    "enum": ["Casa", "Departamento", "Terreno", "Local", "Oficina", "Bodega"],
-                },
-                "operacion": {"type": "string", "enum": ["Venta", "Renta"]},
-                "precio": {"type": "number"},
-                "zona": {"type": "string"},
-                "recamaras": {"type": "integer"},
-                "banos": {"type": "number"},
-                "m2": {"type": "number"},
-                "descripcion": {"type": "string"},
+                "nombre":      {"type": "string", "description": "Nombre o título de la propiedad"},
+                "tipo":        {"type": "string", "description": "Casa, Terreno, Local, Departamento, Oficina, Bodega"},
+                "operacion":   {"type": "string", "description": "Venta o Renta"},
+                "precio":      {"type": "number"},
+                "ubicacion":   {"type": "string"},
+                "habitaciones":{"type": "integer"},
+                "banos":       {"type": "number"},
+                "m2":          {"type": "number"},
+                "notas":       {"type": "string"},
             },
-            "required": ["titulo", "tipo", "operacion", "precio"],
+            "required": ["nombre", "tipo"],
         },
     },
     {
         "name": "airtable_listar_marketing",
-        "description": (
-            "Lista registros de la tabla Marketing_FBR: campañas, publicaciones, "
-            "acciones de marketing y sus resultados."
-        ),
+        "description": "Lista registros de la tabla Marketing_FBR.",
         "input_schema": {
             "type": "object",
-            "properties": {
-                "limite": {"type": "integer", "default": 10},
-            },
+            "properties": {"limite": {"type": "integer", "default": 10}},
             "required": [],
         },
     },
@@ -135,26 +114,18 @@ TOOLS_AIRTABLE: list[dict] = [
         "input_schema": {
             "type": "object",
             "properties": {
-                "titulo": {"type": "string", "description": "Nombre de la campaña o acción"},
-                "canal": {
-                    "type": "string",
-                    "description": "Canal de marketing",
-                    "enum": ["Instagram", "Facebook", "WhatsApp", "Portal", "Email", "Otro"],
-                },
-                "tipo": {
-                    "type": "string",
-                    "description": "Tipo de acción",
-                    "enum": ["Post", "Story", "Anuncio", "Email", "Llamada", "Evento"],
-                },
-                "propiedad_relacionada": {"type": "string", "description": "Título o ID de la propiedad"},
-                "notas": {"type": "string"},
+                "titulo": {"type": "string"},
+                "canal":  {"type": "string", "enum": ["Instagram", "Facebook", "WhatsApp", "Portal", "Email", "Otro"]},
+                "tipo":   {"type": "string", "enum": ["Post", "Story", "Anuncio", "Email", "Llamada", "Evento"]},
+                "propiedad_relacionada": {"type": "string"},
+                "notas":  {"type": "string"},
             },
             "required": ["titulo", "canal"],
         },
     },
     {
         "name": "airtable_reporte_clientes",
-        "description": "Resumen estadístico de clientes: total por estado, origen y conversión.",
+        "description": "Resumen estadístico de clientes: total por estado y conversión.",
         "input_schema": {"type": "object", "properties": {}, "required": []},
     },
 ]
@@ -164,14 +135,14 @@ TOOLS_AIRTABLE: list[dict] = [
 
 def ejecutar_herramienta(nombre: str, parametros: dict) -> str:
     handlers = {
-        "airtable_listar_clientes": _listar_clientes,
-        "airtable_crear_cliente": _crear_cliente,
-        "airtable_actualizar_cliente": _actualizar_cliente,
-        "airtable_listar_propiedades": _listar_propiedades,
-        "airtable_crear_propiedad": _crear_propiedad,
-        "airtable_listar_marketing": _listar_marketing,
+        "airtable_listar_clientes":        _listar_clientes,
+        "airtable_crear_cliente":          _crear_cliente,
+        "airtable_actualizar_cliente":     _actualizar_cliente,
+        "airtable_listar_propiedades":     _listar_propiedades,
+        "airtable_crear_propiedad":        _crear_propiedad,
+        "airtable_listar_marketing":       _listar_marketing,
         "airtable_registrar_accion_marketing": _registrar_accion_marketing,
-        "airtable_reporte_clientes": _reporte_clientes,
+        "airtable_reporte_clientes":       _reporte_clientes,
     }
     if nombre not in handlers:
         return f"Herramienta desconocida: {nombre}"
@@ -183,18 +154,18 @@ def ejecutar_herramienta(nombre: str, parametros: dict) -> str:
 
 def _listar_clientes(estado: str | None = None, limite: int = 20) -> str:
     tabla = _get_table(AIRTABLE_CLIENTES_TABLE)
-    formula = f"{{Estado}}='{estado}'" if estado else None
+    formula = f"{{'Estado del cliente'}}='{estado}'" if estado else None
     registros = tabla.all(formula=formula, max_records=limite)
     if not registros:
-        return "No se encontraron clientes con esos criterios."
+        return "No se encontraron clientes."
     lineas = [f"Clientes ({len(registros)}):"]
     for r in registros:
         f = r["fields"]
         lineas.append(
             f"• [{r['id']}] {f.get('Nombre', '—')} | "
-            f"Tel: {f.get('Telefono', '—')} | "
-            f"Estado: {f.get('Estado', '—')} | "
-            f"Origen: {f.get('Origen', '—')}"
+            f"Tel: {f.get('Teléfono', '—')} | "
+            f"Estado: {f.get('Estado del cliente', '—')} | "
+            f"Busca: {f.get('Propiedades interesadas', '—')}"
         )
     return "\n".join(lineas)
 
@@ -202,19 +173,21 @@ def _listar_clientes(estado: str | None = None, limite: int = 20) -> str:
 def _crear_cliente(
     nombre: str,
     telefono: str = "",
-    email: str = "",
     interes: str = "",
     presupuesto: str = "",
-    origen: str = "Otro",
+    origen: str = "",
     notas: str = "",
 ) -> str:
     tabla = _get_table(AIRTABLE_CLIENTES_TABLE)
-    campos: dict[str, Any] = {"Nombre": nombre, "Estado": "Nuevo", "Origen": origen}
-    if telefono: campos["Telefono"] = telefono
-    if email: campos["Email"] = email
-    if interes: campos["Interes"] = interes
-    if presupuesto: campos["Presupuesto"] = presupuesto
-    if notas: campos["Notas"] = notas
+    campos: dict[str, Any] = {"Nombre": nombre, "Estado del cliente": "Nuevo"}
+    if telefono:    campos["Teléfono"] = telefono
+    if interes:     campos["Propiedades interesadas"] = interes
+    # Presupuesto y origen van en Notas (no tienen columna propia)
+    nota_extra = ""
+    if presupuesto: nota_extra += f"Presupuesto: {presupuesto}. "
+    if origen:      nota_extra += f"Origen: {origen}. "
+    if notas:       nota_extra += notas
+    if nota_extra:  campos["Notas"] = nota_extra.strip()
     r = tabla.create(campos)
     return f"Cliente registrado. ID: {r['id']} | {nombre}"
 
@@ -227,9 +200,9 @@ def _actualizar_cliente(
 ) -> str:
     tabla = _get_table(AIRTABLE_CLIENTES_TABLE)
     campos: dict[str, Any] = {}
-    if estado: campos["Estado"] = estado
-    if notas: campos["Notas"] = notas
-    if siguiente_accion: campos["SiguienteAccion"] = siguiente_accion
+    if estado:           campos["Estado del cliente"] = estado
+    if notas:            campos["Notas"] = notas
+    if siguiente_accion: campos["Notas"] = (campos.get("Notas", "") + f" | Próximo: {siguiente_accion}").strip(" |")
     if not campos:
         return "No se proporcionaron campos para actualizar."
     tabla.update(record_id, campos)
@@ -238,67 +211,71 @@ def _actualizar_cliente(
 
 def _listar_propiedades(
     tipo: str | None = None,
-    operacion: str | None = None,
-    precio_max: float | None = None,
+    estado: str | None = None,
     limite: int = 10,
 ) -> str:
     tabla = _get_table(AIRTABLE_PROPIEDADES_TABLE)
     partes: list[str] = []
-    if tipo: partes.append(f"{{Tipo}}='{tipo}'")
-    if operacion: partes.append(f"{{Operacion}}='{operacion}'")
-    if precio_max: partes.append(f"{{Precio}}<={precio_max}")
+    if tipo:   partes.append(f"{{Tipo}}='{tipo}'")
+    if estado: partes.append(f"{{Estado}}='{estado}'")
     formula = f"AND({', '.join(partes)})" if partes else None
     registros = tabla.all(formula=formula, max_records=limite)
     if not registros:
-        return "No se encontraron propiedades con esos criterios."
+        return "No se encontraron propiedades."
     lineas = [f"Propiedades ({len(registros)}):"]
     for r in registros:
         f = r["fields"]
         lineas.append(
-            f"• {f.get('Titulo', '—')} | {f.get('Tipo', '—')} | "
-            f"{f.get('Operacion', '—')} | ${f.get('Precio', 0):,.0f} | "
-            f"Zona: {f.get('Zona', '—')}"
+            f"• [{r['id']}] {f.get('Nombre de la propiedad', '—')} | "
+            f"{f.get('Tipo', '—')} | Estado: {f.get('Estado', '—')} | "
+            f"Hab: {f.get('Habitaciones', '—')} | Baños: {f.get('Baños', '—')} | "
+            f"Zona: {f.get('Ubicación', '—')}"
         )
     return "\n".join(lineas)
 
 
 def _crear_propiedad(
-    titulo: str,
+    nombre: str,
     tipo: str,
-    operacion: str,
-    precio: float,
-    zona: str = "",
-    recamaras: int = 0,
+    operacion: str = "Venta",
+    precio: float = 0,
+    ubicacion: str = "",
+    habitaciones: int = 0,
     banos: float = 0,
     m2: float = 0,
-    descripcion: str = "",
+    notas: str = "",
 ) -> str:
     tabla = _get_table(AIRTABLE_PROPIEDADES_TABLE)
     campos: dict[str, Any] = {
-        "Titulo": titulo, "Tipo": tipo, "Operacion": operacion,
-        "Precio": precio, "Estado": "Disponible",
+        "Nombre de la propiedad": nombre,
+        "Tipo": tipo,
+        "Estado": "Disponible",
     }
-    if zona: campos["Zona"] = zona
-    if recamaras: campos["Recamaras"] = recamaras
-    if banos: campos["Banos"] = banos
-    if m2: campos["M2"] = m2
-    if descripcion: campos["Descripcion"] = descripcion
+    if ubicacion:    campos["Ubicación"] = ubicacion
+    if habitaciones: campos["Habitaciones"] = habitaciones
+    if banos:        campos["Baños"] = banos
+    # Precio, M2 y operación van en Notas
+    extra = f"{operacion}. "
+    if precio: extra += f"Precio: ${precio:,.0f}. "
+    if m2:     extra += f"M2: {m2}. "
+    if notas:  extra += notas
+    if extra:  campos["Notas"] = extra.strip()
     r = tabla.create(campos)
-    return f"Propiedad '{titulo}' registrada. ID: {r['id']}"
+    return f"Propiedad '{nombre}' registrada. ID: {r['id']}"
 
 
 def _listar_marketing(limite: int = 10) -> str:
     tabla = _get_table(AIRTABLE_MARKETING_TABLE)
-    registros = tabla.all(max_records=limite)
+    try:
+        registros = tabla.all(max_records=limite)
+    except Exception as e:
+        return f"Error al leer Marketing_FBR: {e}"
     if not registros:
         return "No hay registros de marketing."
     lineas = [f"Marketing ({len(registros)}):"]
     for r in registros:
         f = r["fields"]
-        lineas.append(
-            f"• {f.get('Titulo', '—')} | Canal: {f.get('Canal', '—')} | "
-            f"Tipo: {f.get('Tipo', '—')}"
-        )
+        lineas.append(f"• {list(f.values())[:3]}")
     return "\n".join(lineas)
 
 
@@ -310,11 +287,15 @@ def _registrar_accion_marketing(
     notas: str = "",
 ) -> str:
     tabla = _get_table(AIRTABLE_MARKETING_TABLE)
-    campos: dict[str, Any] = {"Titulo": titulo, "Canal": canal, "Tipo": tipo}
-    if propiedad_relacionada: campos["PropiedadRelacionada"] = propiedad_relacionada
-    if notas: campos["Notas"] = notas
-    r = tabla.create(campos)
-    return f"Acción de marketing '{titulo}' registrada. ID: {r['id']}"
+    # Intentar con campos genéricos — si falla, crear con lo disponible
+    try:
+        campos: dict[str, Any] = {"Notas": f"{titulo} | {canal} | {tipo}"}
+        if propiedad_relacionada: campos["Notas"] += f" | {propiedad_relacionada}"
+        if notas: campos["Notas"] += f" | {notas}"
+        r = tabla.create(campos)
+        return f"Acción '{titulo}' registrada. ID: {r['id']}"
+    except Exception as e:
+        return f"Error registrando marketing: {e}"
 
 
 def _reporte_clientes() -> str:
@@ -323,12 +304,9 @@ def _reporte_clientes() -> str:
     if not todos:
         return "No hay clientes en el sistema."
     estados: dict[str, int] = {}
-    origenes: dict[str, int] = {}
     for r in todos:
-        est = r["fields"].get("Estado", "Sin estado")
-        ori = r["fields"].get("Origen", "Sin origen")
+        est = r["fields"].get("Estado del cliente", "Sin clasificar")
         estados[est] = estados.get(est, 0) + 1
-        origenes[ori] = origenes.get(ori, 0) + 1
     total = len(todos)
     cerrados = estados.get("Cerrado", 0)
     lineas = [
@@ -337,8 +315,5 @@ def _reporte_clientes() -> str:
         "\nPor estado:",
     ]
     for k, v in sorted(estados.items(), key=lambda x: -x[1]):
-        lineas.append(f"  {k}: {v}")
-    lineas.append("\nPor origen:")
-    for k, v in sorted(origenes.items(), key=lambda x: -x[1]):
         lineas.append(f"  {k}: {v}")
     return "\n".join(lineas)
