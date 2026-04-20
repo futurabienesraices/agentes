@@ -2,16 +2,23 @@
 from __future__ import annotations
 from typing import Any
 from src.config import (
-    AIRTABLE_API_KEY, AIRTABLE_BASE_ID,
-    AIRTABLE_PROPIEDADES_TABLE,
-    AIRTABLE_MARKETING_TABLE,
-    AIRTABLE_CLIENTES_TABLE,
+    AIRTABLE_API_KEY,
+    AIRTABLE_BASE_CLIENTES, AIRTABLE_BASE_MARKETING, AIRTABLE_BASE_PROPIEDADES,
+    AIRTABLE_PROPIEDADES_TABLE, AIRTABLE_MARKETING_TABLE, AIRTABLE_CLIENTES_TABLE,
 )
+
+# Cada tabla usa su propio Base ID
+_TABLA_BASE = {
+    AIRTABLE_CLIENTES_TABLE:    AIRTABLE_BASE_CLIENTES,
+    AIRTABLE_MARKETING_TABLE:   AIRTABLE_BASE_MARKETING,
+    AIRTABLE_PROPIEDADES_TABLE: AIRTABLE_BASE_PROPIEDADES,
+}
 
 
 def _get_table(nombre_tabla: str):
     from pyairtable import Api
-    return Api(AIRTABLE_API_KEY).table(AIRTABLE_BASE_ID, nombre_tabla)
+    base_id = _TABLA_BASE.get(nombre_tabla, AIRTABLE_BASE_CLIENTES)
+    return Api(AIRTABLE_API_KEY).table(base_id, nombre_tabla)
 
 
 # ── Definiciones de herramientas para Claude ─────────────────────

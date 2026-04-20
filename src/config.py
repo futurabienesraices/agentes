@@ -10,11 +10,14 @@ MODELO_PRINCIPAL = "claude-sonnet-4-6"
 MODELO_RAPIDO = "claude-haiku-4-5-20251001"
 
 # ── Airtable ─────────────────────────────────────────────────────
+# Cada tabla vive en su propia base (3 bases separadas)
 AIRTABLE_API_KEY = os.getenv("AIRTABLE_API_KEY", "")
-AIRTABLE_BASE_ID = os.getenv("AIRTABLE_BASE_ID", "")
+AIRTABLE_BASE_CLIENTES    = os.getenv("AIRTABLE_BASE_CLIENTES",    "appb4XJ04yi27i2X4")
+AIRTABLE_BASE_MARKETING   = os.getenv("AIRTABLE_BASE_MARKETING",   "appizAgtBCoVllOCI")
+AIRTABLE_BASE_PROPIEDADES = os.getenv("AIRTABLE_BASE_PROPIEDADES", "appqYlISCjGnla9EN")
+AIRTABLE_CLIENTES_TABLE    = os.getenv("AIRTABLE_CLIENTES_TABLE",    "Clientes_FBR")
+AIRTABLE_MARKETING_TABLE   = os.getenv("AIRTABLE_MARKETING_TABLE",   "Marketing_FBR")
 AIRTABLE_PROPIEDADES_TABLE = os.getenv("AIRTABLE_PROPIEDADES_TABLE", "Propiedades_FBR")
-AIRTABLE_MARKETING_TABLE = os.getenv("AIRTABLE_MARKETING_TABLE", "Marketing_FBR")
-AIRTABLE_CLIENTES_TABLE = os.getenv("AIRTABLE_CLIENTES_TABLE", "Clientes_FBR")
 
 # ── Notion ───────────────────────────────────────────────────────
 NOTION_API_KEY = os.getenv("NOTION_API_KEY", "")
