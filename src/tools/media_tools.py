@@ -266,10 +266,24 @@ def ejecutar_herramienta(nombre: str, parametros: dict) -> str:
         return f"Error en {nombre}: {exc}"
 
 
+def _resolver_ruta(nombre_archivo: str) -> str:
+    """Resuelve la ruta completa buscando en input/ recursivamente y luego en output/."""
+    # Ruta directa
+    for base in [CARPETA_INPUT, CARPETA_OUTPUT]:
+        ruta = os.path.join(base, nombre_archivo)
+        if os.path.exists(ruta):
+            return ruta
+    # Búsqueda recursiva en input/
+    for f in Path(CARPETA_INPUT).rglob("*"):
+        if f.name == nombre_archivo or str(f.relative_to(CARPETA_INPUT)) == nombre_archivo:
+            return str(f)
+    return os.path.join(CARPETA_INPUT, nombre_archivo)  # fallback
+
+
 def _video_info(nombre_archivo: str) -> str:
-    ruta = _ruta_input(nombre_archivo)
+    ruta = _resolver_ruta(nombre_archivo)
     if not os.path.exists(ruta):
-        ruta = _ruta_output(nombre_archivo)
+        pass  # dejará que ffprobe falle con mensaje claro
     meta = _ffprobe(ruta)
     fmt = meta.get("format", {})
     duracion = float(fmt.get("duration", 0))
@@ -293,7 +307,7 @@ def _video_analizar(
     tipo_analisis: str = "general",
 ) -> str:
     import anthropic as ant
-    ruta = _ruta_input(nombre_archivo)
+    ruta = _resolver_ruta(nombre_archivo)
     tmp_dir = tempfile.mkdtemp()
 
     # Extraer frames con FFmpeg
@@ -481,18 +495,36 @@ def _video_unir_clips(archivos: list[str], nombre_salida: str) -> str:
 
 def _media_listar() -> str:
     _init_carpetas()
-    lineas = ["📁 media/input/ (videos originales):"]
-    inputs = list(Path(CARPETA_INPUT).iterdir())
-    if inputs:
-        for f in sorted(inputs):
-            size = f.stat().st_size / (1024 * 1024)
-            lineas.append(f"  • {f.name} ({size:.1f} MB)")
-    else:
-        lineas.append("  (vacío — coloca tus videos aquí)")
-    lineas.append("\n📁 media/output/ (resultados editados):")
-    outputs = list(Path(CARPETA_OUTPUT).iterdir())
+    EXTS = {".mp4", ".mov", ".avi", ".mkv", ".webm", ".m4v",
+            ".jpg", ".jpeg", ".png", ".heic", ".gif", ".mp3", ".wav", ".m4a"}
+
+    def listar_recursivo(carpeta: Path, prefijo: str) -> list[str]:
+        lineas = []
+        try:
+            items = sorted(carpeta.iterdir())
+        except PermissionError:
+            return []
+        for item in items:
+            if item.is_dir():
+                lineas.append(f"  📂 {item.name}/")
+                for sub in listar_recursivo(item, prefijo + "  "):
+                    lineas.append("  " + sub)
+            elif item.suffix.lower() in EXTS:
+                size = item.stat().st_size / (1024 * 1024)
+                # ruta relativa desde CARPETA_INPUT para usarla como argumento
+                rel = str(item.relative_to(Path(CARPETA_INPUT)))
+                lineas.append(f"  • {rel} ({size:.1f} MB)")
+        return lineas
+
+    lineas = ["📁 media/input/:"]
+    sub = listar_recursivo(Path(CARPETA_INPUT), "")
+    lineas += sub if sub else ["  (vacío — coloca tus videos aquí)"]
+
+    lineas.append("\n📁 media/output/:")
+    outputs = sorted(Path(CARPETA_OUTPUT).rglob("*"))
+    outputs = [f for f in outputs if f.is_file() and f.suffix.lower() in EXTS]
     if outputs:
-        for f in sorted(outputs):
+        for f in outputs:
             size = f.stat().st_size / (1024 * 1024)
             lineas.append(f"  • {f.name} ({size:.1f} MB)")
     else:
