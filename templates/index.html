@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Equipo de Agentes IA — Futura</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:'Segoe UI',system-ui,sans-serif; background:#0B141A; color:#E9EDEF; height:100vh; display:flex; overflow:hidden; }
+
+/* ── Sidebar ──────────────────────── */
+.sidebar { width:360px; min-width:360px; background:#111B21; border-right:1px solid #2A3942; display:flex; flex-direction:column; }
+.sidebar-header { padding:14px 16px; background:#202C33; display:flex; align-items:center; gap:10px; }
+.sidebar-header .logo { font-size:1.6rem; }
+.sidebar-header .titles h1 { font-size:1rem; font-weight:600; }
+.sidebar-header .titles p { font-size:0.72rem; color:#8696A0; margin-top:1px; }
+
+.quick-actions { padding:8px 10px; display:flex; gap:6px; border-bottom:1px solid #2A3942; flex-wrap:wrap; }
+.btn-q { background:#005C4B; border:none; color:#E9EDEF; padding:6px 12px; border-radius:16px; cursor:pointer; font-size:0.78rem; white-space:nowrap; transition:background .15s; }
+.btn-q:hover { background:#017A62; }
+.btn-q.warn { background:#7B4600; }
+.btn-q.warn:hover { background:#9C5A00; }
+
+.agent-list { overflow-y:auto; flex:1; }
+.agent-item { padding:10px 16px; display:flex; align-items:center; gap:12px; cursor:pointer; border-bottom:1px solid #1F2C34; transition:background .1s; }
+.agent-item:hover,.agent-item.active { background:#2A3942; }
+.av { font-size:1.5rem; width:46px; height:46px; background:#2A3942; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.agent-item.active .av { background:#374147; }
+.ai { flex:1; min-width:0; }
+.ai-name { font-weight:600; font-size:0.9rem; }
+.ai-last { font-size:0.75rem; color:#8696A0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; margin-top:2px; }
+.am { text-align:right; flex-shrink:0; }
+.am-time { font-size:0.68rem; color:#8696A0; }
+.am-cnt { background:#00A884; color:#111B21; border-radius:50%; width:20px; height:20px; font-size:0.68rem; font-weight:700; display:flex; align-items:center; justify-content:center; margin-top:4px; margin-left:auto; }
+
+/* ── Chat ─────────────────────────── */
+.chat { flex:1; display:flex; flex-direction:column; min-width:0; }
+
+.empty-state { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; color:#8696A0; text-align:center; padding:32px; }
+.empty-state .icon { font-size:5rem; margin-bottom:16px; }
+.empty-state h2 { font-size:1.2rem; font-weight:400; color:#D1D7DB; }
+.empty-state p { font-size:0.85rem; margin-top:8px; }
+
+#chatPanel { flex:1; display:flex; flex-direction:column; overflow:hidden; }
+
+.chat-hdr { padding:10px 16px; background:#202C33; display:flex; align-items:center; gap:12px; }
+.chat-hdr .hav { font-size:1.8rem; }
+.chat-hdr .hi { flex:1; }
+.chat-hdr .hname { font-weight:600; font-size:0.95rem; }
+.chat-hdr .hstatus { font-size:0.75rem; color:#8696A0; }
+.typing-lbl { font-size:0.75rem; color:#00A884; display:none; }
+
+.messages { flex:1; overflow-y:auto; padding:12px 16px; display:flex; flex-direction:column; gap:2px; background:#0B141A; }
+
+.mw { display:flex; margin-bottom:1px; }
+.mw.usuario { justify-content:flex-end; }
+.mw.agente  { justify-content:flex-start; }
+
+.bubble { max-width:70%; padding:8px 12px 6px; border-radius:8px; font-size:0.875rem; line-height:1.45; word-break:break-word; }
+.bubble.usuario { background:#005C4B; border-radius:8px 2px 8px 8px; }
+.bubble.agente  { background:#202C33; border-radius:2px 8px 8px 8px; }
+.bubble pre { white-space:pre-wrap; font-family:inherit; }
+.btime { font-size:0.64rem; color:#8696A082; text-align:right; margin-top:3px; }
+
+.typing-bbl { background:#202C33; padding:12px 14px; border-radius:2px 8px 8px 8px; }
+.dots { display:flex; gap:4px; }
+.dots span { width:7px; height:7px; background:#8696A0; border-radius:50%; animation:blink 1.3s infinite; }
+.dots span:nth-child(2){animation-delay:.2s}
+.dots span:nth-child(3){animation-delay:.4s}
+@keyframes blink{0%,80%,100%{opacity:.2}40%{opacity:1}}
+
+.input-area { padding:8px 12px; background:#202C33; display:flex; gap:8px; align-items:flex-end; }
+.input-area textarea { flex:1; background:#2A3942; border:none; color:#E9EDEF; padding:10px 14px; border-radius:8px; font-size:0.9rem; resize:none; max-height:120px; outline:none; font-family:inherit; line-height:1.4; }
+.input-area textarea::placeholder { color:#8696A0; }
+.btn-send { background:#00A884; border:none; color:#fff; width:44px; height:44px; border-radius:50%; cursor:pointer; font-size:1.1rem; display:flex; align-items:center; justify-content:center; flex-shrink:0; transition:background .15s; }
+.btn-send:hover { background:#00C49A; }
+.btn-send:disabled { background:#374045; cursor:not-allowed; }
+
+::-webkit-scrollbar { width:5px; }
+::-webkit-scrollbar-thumb { background:#374045; border-radius:3px; }
+</style>
+</head>
+<body>
+
+<div class="sidebar">
+  <div class="sidebar-header">
+    <div class="logo">🤖</div>
+    <div class="titles">
+      <h1>Equipo de Agentes IA</h1>
+      <p>Futura Bienes Raíces · Futura Cleaning</p>
+    </div>
+  </div>
+  <div class="quick-actions">
+    <button class="btn-q" onclick="pipeline('daily-brief','')">📊 Brief diario</button>
+    <button class="btn-q" onclick="pipeline('publicar-diario','')">📲 Publicar hoy</button>
+    <button class="btn-q warn" onclick="limpiarHistorial()">🗑 Limpiar chat</button>
+  </div>
+  <div class="agent-list" id="agentList"></div>
+</div>
+
+<div class="chat" id="chatRoot">
+  <div class="empty-state" id="emptyState">
+    <div class="icon">💬</div>
+    <h2>Selecciona un agente para comenzar</h2>
+    <p>Envía órdenes, consultas o tareas a cualquier miembro del equipo.</p>
+  </div>
+  <div id="chatPanel" style="display:none;">
+    <div class="chat-hdr">
+      <div class="hav" id="hav"></div>
+      <div class="hi">
+        <div class="hname" id="hname"></div>
+        <div class="hstatus" id="hstatus"></div>
+        <div class="typing-lbl" id="typingLbl">escribiendo…</div>
+      </div>
+    </div>
+    <div class="messages" id="messages"></div>
+    <div class="input-area">
+      <textarea id="inp" rows="1" placeholder="Escribe una tarea o pregunta…" onkeydown="onKey(event)" oninput="autoResize(this)"></textarea>
+      <button class="btn-send" id="btnSend" onclick="enviar()">&#10148;</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const AGENTES = {{ agentes|tojson }};
+let agente = null;
+let enviando = false;
+
+// ── Sidebar ────────────────────────────────────────────────────
+async function cargarAgentes() {
+  try {
+    const r = await fetch('/api/agentes');
+    const data = await r.json();
+    const list = document.getElementById('agentList');
+    list.innerHTML = '';
+    Object.entries(data).forEach(([key, info]) => {
+      const el = document.createElement('div');
+      el.className = 'agent-item' + (key === agente ? ' active' : '');
+      el.dataset.key = key;
+      el.innerHTML = `
+        <div class="av">${info.emoji}</div>
+        <div class="ai">
+          <div class="ai-name">${info.nombre}</div>
+          <div class="ai-last">${esc(info.ultimo)}</div>
+        </div>
+        <div class="am">
+          <div class="am-time">${info.hora || ''}</div>
+          ${info.total > 0 ? `<div class="am-cnt">${info.total}</div>` : ''}
+        </div>`;
+      el.onclick = () => seleccionar(key, info);
+      list.appendChild(el);
+    });
+  } catch(e) { console.error(e); }
+}
+
+// ── Seleccionar agente ─────────────────────────────────────────
+async function seleccionar(key, info) {
+  agente = key;
+  document.getElementById('emptyState').style.display = 'none';
+  const panel = document.getElementById('chatPanel');
+  panel.style.display = 'flex';
+  panel.style.flexDirection = 'column';
+  panel.style.flex = '1';
+  panel.style.overflow = 'hidden';
+  document.getElementById('hav').textContent = info.emoji;
+  document.getElementById('hname').textContent = info.nombre;
+  document.getElementById('hstatus').textContent = info.desc;
+  document.querySelectorAll('.agent-item').forEach(el =>
+    el.classList.toggle('active', el.dataset.key === key));
+  await cargarHistorial(key);
+  document.getElementById('inp').focus();
+}
+
+async function cargarHistorial(key) {
+  const r = await fetch(`/api/historial/${key}`);
+  const hist = await r.json();
+  const msgs = document.getElementById('messages');
+  msgs.innerHTML = '';
+  hist.forEach(m => burbuja(m.rol, m.texto, m.hora, false));
+  scrollDown();
+}
+
+// ── Mensajes ───────────────────────────────────────────────────
+function burbuja(rol, texto, hora, fade = true) {
+  const msgs = document.getElementById('messages');
+  const w = document.createElement('div');
+  w.className = `mw ${rol}`;
+  w.innerHTML = `
+    <div class="bubble ${rol}">
+      <pre>${esc(texto)}</pre>
+      <div class="btime">${hora || ''}</div>
+    </div>`;
+  if (fade) { w.style.opacity = '0'; requestAnimationFrame(() => { w.style.transition = 'opacity .2s'; w.style.opacity = '1'; }); }
+  msgs.appendChild(w);
+  scrollDown();
+  return w;
+}
+
+function typing(show) {
+  document.getElementById('typingLbl').style.display = show ? 'block' : 'none';
+  document.getElementById('hstatus').style.display = show ? 'none' : 'block';
+  const msgs = document.getElementById('messages');
+  document.getElementById('typingBbl')?.remove();
+  if (show) {
+    const t = document.createElement('div');
+    t.className = 'mw agente'; t.id = 'typingBbl';
+    t.innerHTML = `<div class="typing-bbl"><div class="dots"><span></span><span></span><span></span></div></div>`;
+    msgs.appendChild(t); scrollDown();
+  }
+}
+
+function scrollDown() {
+  const el = document.getElementById('messages');
+  if (el) el.scrollTop = el.scrollHeight;
+}
+
+// ── Enviar ─────────────────────────────────────────────────────
+async function enviar() {
+  if (enviando || !agente) return;
+  const inp = document.getElementById('inp');
+  const tarea = inp.value.trim();
+  if (!tarea) return;
+
+  enviando = true;
+  inp.value = ''; inp.style.height = 'auto';
+  document.getElementById('btnSend').disabled = true;
+
+  const hora = ahora();
+  burbuja('usuario', tarea, hora);
+  typing(true);
+
+  try {
+    const r = await fetch('/api/chat', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({agente, tarea})
+    });
+    const data = await r.json();
+    typing(false);
+    burbuja('agente', data.respuesta || data.error || 'Sin respuesta', data.hora || ahora());
+  } catch(e) {
+    typing(false);
+    burbuja('agente', `Error de conexión: ${e.message}`, ahora());
+  }
+
+  enviando = false;
+  document.getElementById('btnSend').disabled = false;
+  inp.focus();
+  cargarAgentes();
+}
+
+// ── Pipelines ──────────────────────────────────────────────────
+async function pipeline(nombre, defaultTarea) {
+  const tarea = prompt(`Pipeline: ${nombre}\nContexto adicional (opcional):`, defaultTarea);
+  if (tarea === null) return;
+  if (!agente) await seleccionar('auto', AGENTES['auto']);
+  burbuja('usuario', `🔄 Pipeline: ${nombre}${tarea ? '\n'+tarea : ''}`, ahora());
+  typing(true);
+  try {
+    const r = await fetch(`/api/pipeline/${nombre}`, {
+      method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({tarea})
+    });
+    const data = await r.json();
+    typing(false);
+    burbuja('agente', data.respuesta || data.error || 'Sin respuesta', ahora());
+  } catch(e) { typing(false); burbuja('agente', `Error: ${e.message}`, ahora()); }
+  cargarAgentes();
+}
+
+function limpiarHistorial() {
+  if (!agente) return;
+  if (!confirm('¿Borrar el historial de este agente?')) return;
+  fetch('/api/historial/' + agente, {method:'DELETE'}).catch(()=>{});
+  document.getElementById('messages').innerHTML = '';
+}
+
+// ── Helpers ────────────────────────────────────────────────────
+function onKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); enviar(); }
+}
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+}
+function ahora() {
+  return new Date().toLocaleTimeString('es', {hour:'2-digit', minute:'2-digit'});
+}
+function esc(t) {
+  return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ── Init ───────────────────────────────────────────────────────
+cargarAgentes();
+</script>
+</body>
+</html>

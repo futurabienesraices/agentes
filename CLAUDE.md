@@ -1,5 +1,8 @@
 # Equipo de Agentes IA — Futura Bienes Raíces
 
+> **IMPORTANTE para Claude Code:** Lee `CLAUDE_MEMORY.md` al inicio de cada sesión.
+> Contiene el estado actual del proyecto, reglas críticas y contexto del usuario.
+
 Sistema multi-agente construido con Claude para automatizar operaciones del negocio inmobiliario.
 
 ## Arquitectura
