@@ -20,18 +20,21 @@ FLUJO AUTÓNOMO — SIEMPRE ESTE ORDEN
 2. media_listar → ver archivos disponibles
 3. Videos en índice: usa el análisis guardado directamente
 4. Videos nuevos: video_info → video_analizar (tipo="reel" para reels, "propiedad" para inmobiliaria)
-5. Seleccionar las MEJORES tomas según criterio profesional (ver abajo)
-6. Crear el resultado final directamente con video_crear_reel (sin clips intermedios)
-7. media_limpiar_output → SIEMPRE al final: elimina archivos corruptos y cualquier clip intermedio
-8. Reportar: qué creaste, dónde está, por qué elegiste esas tomas
+5. Seleccionar 5-8 MEJORES momentos según criterio profesional (ver abajo)
+6. Escribir script de voz en off (60-90 palabras para ~30s, 120-150 para ~60s)
+7. Llamar video_crear_profesional con los clips + script → genera voz, subtítulos y transiciones
+8. media_limpiar_output(organizar=True) → SIEMPRE al final
+9. Reportar: archivo creado, ruta, por qué elegiste esas tomas
 
-REGLA DE ORO: al terminar llama media_limpiar_output(organizar=True).
-Esto borra corruptos, borra los intermedios que indiques, y organiza automáticamente:
-  output/futura_cleaning/reels/        ← reels TikTok/Instagram de Cleaning
-  output/futura_cleaning/facebook/     ← videos Facebook de Cleaning
-  output/futura_bienes_raices/reels/   ← reels de propiedades
-  output/futura_bienes_raices/facebook/ ← videos Facebook de propiedades
-Nombra siempre los archivos con palabras clave del negocio para que la organización sea automática.
+HERRAMIENTA PRINCIPAL: video_crear_profesional
+Úsala para TODO contenido de redes. Une clips, pone voz en off neural y subtítulos automáticamente.
+Solo usa video_crear_reel si el usuario pide explícitamente sin voz.
+
+NOMENCLATURA (crucial para auto-organización en subcarpetas):
+- Futura Cleaning TikTok/IG: cleaning_reel_tiktok.mp4 → se guarda en output/futura_cleaning/reels/
+- Futura Cleaning Facebook:  cleaning_facebook.mp4    → output/futura_cleaning/facebook/
+- Bienes Raíces TikTok/IG:   fbr_casa_trebol_reel.mp4 → output/futura_bienes_raices/reels/
+- Bienes Raíces Facebook:    fbr_casa_trebol_fb.mp4   → output/futura_bienes_raices/facebook/
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 CRITERIO PROFESIONAL — SELECCIÓN DE TOMAS
@@ -53,19 +56,22 @@ PRIORIZA estas tomas:
 ✓ Tomas que generan emoción o curiosidad en los primeros 3 segundos
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-FUTURA CLEANING — ESTRUCTURA DEL REEL (15-30s)
+FUTURA CLEANING — ESTRUCTURA (30-60s, 5-8 clips)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-HOOK 0-3s: La toma más impactante — mueble MUY sucio O resultado final limpio
-  (El antes/después en el hook genera el mayor engagement)
-DESARROLLO 3-20s: Proceso en clips de 2-3s:
-  → Aplicación del producto (primer plano)
-  → Cepillado o fregado (movimiento visible)
-  → Extracción de suciedad (el momento "satisfactorio")
-  → Resultado parcial mostrando el avance
-CIERRE 20-30s: Mueble limpio + texto con precio + "Escríbenos al 6027-2418"
+CLIPS A SELECCIONAR:
+  Clip 1 (hook, 3-4s): Mueble más sucio — primer plano impactante
+  Clip 2 (3-4s): Aplicación del producto — manos trabajando, primer plano
+  Clip 3 (3-4s): Cepillado/fregado — movimiento rítmico, genera satisfacción
+  Clip 4 (3-4s): Extracción de suciedad visible — el momento "wow"
+  Clip 5 (3-4s): Proceso de aspirado o secado
+  Clip 6 (4-5s): Resultado final — mueble completamente limpio, iluminado
+  Clip 7 (2-3s, opcional): Reacción del cliente o logo/precio
 
-Criterio de selección de mueble: prioriza el que muestre MAYOR CONTRASTE entre
-sucio y limpio — eso es lo que más impacta y genera llamadas.
+SCRIPT DE VOZ EJEMPLO (adaptar al video):
+"¿Cuánta suciedad acumula tu sofá sin que te des cuenta? En Futura Cleaning
+lo limpiamos a fondo con nuestro proceso profesional de 6 pasos. Manchas,
+olores y bacterias: eliminados por completo. Servicio a domicilio en El Salvador.
+Llámanos al 6027-2418 y agenda tu cita hoy."
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 FUTURA BIENES RAÍCES — ESTRUCTURA DEL REEL (30s)

@@ -23,9 +23,26 @@ def _ruta_input(nombre: str) -> str:
     return os.path.join(CARPETA_INPUT, nombre)
 
 
-def _ruta_output(nombre: str) -> str:
-    _init_carpetas()
-    return os.path.join(CARPETA_OUTPUT, nombre)
+def _ruta_output(nombre: str, subcarpeta: str = "") -> str:
+    """Devuelve la ruta de salida, creando la subcarpeta si se indica."""
+    base = Path(CARPETA_OUTPUT) / subcarpeta if subcarpeta else Path(CARPETA_OUTPUT)
+    base.mkdir(parents=True, exist_ok=True)
+    return str(base / nombre)
+
+
+def _subcarpeta_por_nombre(nombre: str, plataforma: str = "") -> str:
+    """Detecta la subcarpeta correcta según el nombre del archivo y la plataforma."""
+    n = nombre.lower()
+    es_cleaning = any(p in n for p in ("cleaning", "limpieza", "sofa", "colchon", "mueble"))
+    es_fbr = any(p in n for p in ("fbr", "bienes", "casa", "terreno", "propiedad"))
+    es_reel = any(p in n + plataforma for p in ("reel", "tiktok", "instagram", "vertical", "9x16"))
+    es_fb = any(p in n + plataforma for p in ("facebook", "fb", "horizontal"))
+
+    if es_cleaning:
+        return "futura_cleaning/reels" if es_reel else ("futura_cleaning/facebook" if es_fb else "futura_cleaning")
+    if es_fbr:
+        return "futura_bienes_raices/reels" if es_reel else ("futura_bienes_raices/facebook" if es_fb else "futura_bienes_raices")
+    return ""
 
 
 def _ffmpeg(*args, timeout: int = 120) -> tuple[str, str]:
@@ -276,6 +293,59 @@ TOOLS_MEDIA: list[dict] = [
             "required": ["titulo", "autor", "capitulos", "nombre_salida"],
         },
     },
+    {
+        "name": "video_crear_profesional",
+        "description": (
+            "Crea un video profesional completo estilo redes sociales: "
+            "une múltiples clips con transiciones suaves, agrega voz en off automática (TTS neural), "
+            "y quema subtítulos estilizados. Úsalo en vez de video_crear_reel cuando quieras "
+            "resultado de alta calidad con narración. Duración recomendada: 45-90 segundos."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "clips": {
+                    "type": "array",
+                    "description": "Lista de clips a usar, con archivo, inicio y duración en segundos",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "archivo":  {"type": "string", "description": "Nombre del archivo de video"},
+                            "inicio":   {"type": "string", "description": "Tiempo de inicio, ej: '00:05' o '1:20'"},
+                            "duracion": {"type": "number",  "description": "Duración del clip en segundos"},
+                        },
+                        "required": ["archivo", "inicio", "duracion"],
+                    },
+                },
+                "script_voz": {
+                    "type": "string",
+                    "description": "Texto completo para la voz en off. Escribe en español natural, coloquial, directo. Máx 150 palabras para 60s.",
+                },
+                "nombre_salida": {
+                    "type": "string",
+                    "description": "Nombre del archivo final, ej: cleaning_reel_tiktok o fbr_casa_trebol_reel",
+                },
+                "plataforma": {
+                    "type": "string",
+                    "enum": ["tiktok", "instagram", "facebook", "youtube"],
+                    "default": "tiktok",
+                    "description": "tiktok/instagram = vertical 9:16 | facebook/youtube = horizontal 16:9",
+                },
+                "transicion": {
+                    "type": "string",
+                    "enum": ["fade", "wiperight", "wipeleft", "slideleft", "slideright", "circleopen", "dissolve"],
+                    "default": "fade",
+                    "description": "Tipo de transición entre clips",
+                },
+                "voz": {
+                    "type": "string",
+                    "default": "es-MX-DaliaNeural",
+                    "description": "Voz TTS. Opciones: es-MX-DaliaNeural (mujer), es-MX-JorgeNeural (hombre), es-ES-ElviraNeural",
+                },
+            },
+            "required": ["clips", "script_voz", "nombre_salida"],
+        },
+    },
 ]
 
 
@@ -293,6 +363,7 @@ def ejecutar_herramienta(nombre: str, parametros: dict) -> str:
         "media_listar": _media_listar,
         "media_indexados": lambda: video_db.listar_indexados(),
         "media_limpiar_output": _media_limpiar_output,
+        "video_crear_profesional": _video_crear_profesional,
         "ebook_crear": _ebook_crear,
     }
     if nombre not in handlers:
@@ -511,8 +582,10 @@ def _video_crear_reel(
     duracion_segundos: float = 30,
     caption: str | None = None,
 ) -> str:
-    entrada = _resolver_ruta(nombre_archivo)  # busca en input/ Y output/
-    salida = _ruta_output(nombre_salida if nombre_salida.endswith(".mp4") else nombre_salida + ".mp4")
+    entrada = _resolver_ruta(nombre_archivo)
+    nombre_mp4 = nombre_salida if nombre_salida.endswith(".mp4") else nombre_salida + ".mp4"
+    sub = _subcarpeta_por_nombre(nombre_mp4, "tiktok")
+    salida = _ruta_output(nombre_mp4, sub)
     filtros = (
         "scale=1080:1920:force_original_aspect_ratio=decrease,"
         "pad=1080:1920:(ow-iw)/2:(oh-ih)/2:color=black"
@@ -701,6 +774,184 @@ def _media_limpiar_output(
     if errores:
         lineas.append(f"\nErrores: {', '.join(errores)}")
     return "\n".join(lineas)
+
+
+# ── TTS + Subtítulos + Editor profesional ────────────────────────
+
+def _ass_ts(s: float) -> str:
+    """Segundos → H:MM:SS.cc para formato ASS."""
+    h, rem = divmod(s, 3600)
+    m, sec = divmod(rem, 60)
+    return f"{int(h)}:{int(m):02d}:{sec:05.2f}"
+
+
+def _generar_ass(script: str, dur_total: float, ruta: str, w: int, h: int) -> None:
+    """Genera archivo ASS con subtítulos auto-temporalizados y estilo profesional."""
+    palabras = script.split()
+    PPL = 6  # palabras por línea
+    grupos = [" ".join(palabras[i:i+PPL]) for i in range(0, len(palabras), PPL)]
+    if not grupos:
+        grupos = [" "]
+    tpg = dur_total / len(grupos)
+    fs = 72 if h >= 1920 else 52
+    mv = max(60, int(h * 0.07))
+    ass = (
+        f"[Script Info]\nScriptType: v4.00+\nPlayResX: {w}\nPlayResY: {h}\nWrapStyle: 1\n\n"
+        "[V4+ Styles]\n"
+        "Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, "
+        "BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, "
+        "BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding\n"
+        f"Style: Default,Arial Black,{fs},&H00FFFFFF,&H000000FF,&H00000000,&HAA000000,"
+        f"-1,0,0,0,100,100,1,0,1,4,2,2,30,30,{mv},1\n\n"
+        "[Events]\nFormat: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\n"
+    )
+    for i, g in enumerate(grupos):
+        ass += f"Dialogue: 0,{_ass_ts(i*tpg)},{_ass_ts((i+1)*tpg)},Default,,0,0,0,,{g}\n"
+    Path(ruta).write_text(ass, encoding="utf-8")
+
+
+def _generar_voz(texto: str, salida: str, voz: str = "es-MX-DaliaNeural") -> None:
+    """Genera voz en off con edge-tts (neural, gratis). Fallback a gTTS."""
+    try:
+        import edge_tts, asyncio
+
+        async def _run():
+            await edge_tts.Communicate(texto, voz).save(salida)
+
+        try:
+            asyncio.run(_run())
+        except RuntimeError:
+            import nest_asyncio
+            nest_asyncio.apply()
+            asyncio.run(_run())
+    except Exception:
+        from gtts import gTTS
+        gTTS(text=texto, lang="es", slow=False).save(salida)
+
+
+def _video_crear_profesional(
+    clips: list[dict],
+    script_voz: str,
+    nombre_salida: str,
+    plataforma: str = "tiktok",
+    transicion: str = "fade",
+    voz: str = "es-MX-DaliaNeural",
+) -> str:
+    """
+    Editor profesional completo:
+    1. Corta clips y los escala al formato de la plataforma
+    2. Une con transiciones xfade
+    3. Genera voz en off neural (TTS)
+    4. Quema subtítulos estilizados sincronizados con la voz
+    5. Guarda en la subcarpeta correcta de output/
+    """
+    import shutil as sh
+
+    RESOLUCIONES = {
+        "tiktok":    (1080, 1920),
+        "instagram": (1080, 1920),
+        "facebook":  (1920, 1080),
+        "youtube":   (1920, 1080),
+    }
+    w, h = RESOLUCIONES.get(plataforma, (1080, 1920))
+    DUR_T = 0.4  # duración de transición en segundos
+    tmp = Path(tempfile.mkdtemp(prefix="futura_"))
+
+    try:
+        # ── 1. Cortar y escalar cada clip ─────────────────────────
+        clips_tmp = []
+        for i, c in enumerate(clips):
+            entrada = _resolver_ruta(c["archivo"])
+            inicio = str(c.get("inicio", "0"))
+            duracion = float(c.get("duracion", 5))
+            salida_c = str(tmp / f"c{i:02d}.mp4")
+            filtro = (
+                f"scale={w}:{h}:force_original_aspect_ratio=decrease,"
+                f"pad={w}:{h}:(ow-iw)/2:(oh-ih)/2:color=black"
+            )
+            _ffmpeg(
+                "-ss", inicio, "-i", entrada, "-t", str(duracion),
+                "-vf", filtro,
+                "-c:v", "libx264", "-preset", "fast", "-crf", "23",
+                "-an", "-r", "30",
+                salida_c, timeout=120,
+            )
+            if os.path.exists(salida_c) and os.path.getsize(salida_c) > 10000:
+                clips_tmp.append(salida_c)
+
+        if not clips_tmp:
+            return "Error: no se pudo cortar ningún clip. Verifica los archivos y tiempos."
+
+        # ── 2. Unir con xfade ─────────────────────────────────────
+        joined = str(tmp / "joined.mp4")
+        if len(clips_tmp) == 1:
+            sh.copy(clips_tmp[0], joined)
+        else:
+            durs = [float(_ffprobe(c)["format"]["duration"]) for c in clips_tmp]
+            inputs_cmd = []
+            for c in clips_tmp:
+                inputs_cmd += ["-i", c]
+            fp, prev, offset = [], "[0:v]", durs[0] - DUR_T
+            for i in range(1, len(clips_tmp)):
+                sv = "[vout]" if i == len(clips_tmp) - 1 else f"[v{i}]"
+                fp.append(
+                    f"{prev}[{i}:v]xfade=transition={transicion}:"
+                    f"duration={DUR_T}:offset={max(offset,0):.3f}{sv}"
+                )
+                prev = sv
+                offset += durs[i] - DUR_T
+            _ffmpeg(
+                *inputs_cmd,
+                "-filter_complex", ";".join(fp),
+                "-map", "[vout]",
+                "-c:v", "libx264", "-preset", "fast", "-crf", "22",
+                "-movflags", "+faststart",
+                joined, timeout=300,
+            )
+
+        dur_total = float(_ffprobe(joined)["format"]["duration"])
+
+        # ── 3. Generar voz en off ─────────────────────────────────
+        voz_path = str(tmp / "voz.mp3")
+        print("  ⚙ Generando voz en off (TTS neural)...", flush=True)
+        _generar_voz(script_voz, voz_path, voz)
+
+        # ── 4. Generar ASS subtítulos ─────────────────────────────
+        ass_path = str(tmp / "subs.ass")
+        _generar_ass(script_voz, dur_total, ass_path, w, h)
+        # Escapar la ruta para el filtro FFmpeg (macOS/Linux)
+        ass_escaped = ass_path.replace("\\", "/").replace(":", "\\:")
+
+        # ── 5. Combinar video + voz + subtítulos ──────────────────
+        nombre_mp4 = nombre_salida if nombre_salida.endswith(".mp4") else nombre_salida + ".mp4"
+        sub = _subcarpeta_por_nombre(nombre_mp4, plataforma)
+        salida_final = _ruta_output(nombre_mp4, sub)
+
+        _ffmpeg(
+            "-i", joined, "-i", voz_path,
+            "-filter_complex",
+            f"[0:v]ass='{ass_escaped}'[vf];"
+            f"[1:a]atrim=0:{dur_total:.3f},apad=pad_dur=2[af]",
+            "-map", "[vf]", "-map", "[af]",
+            "-c:v", "libx264", "-preset", "fast", "-crf", "22",
+            "-c:a", "aac", "-b:a", "192k",
+            "-movflags", "+faststart", "-shortest",
+            salida_final, timeout=400,
+        )
+
+        size = os.path.getsize(salida_final) / (1024 * 1024)
+        dm, ds = int(dur_total // 60), int(dur_total % 60)
+        ruta_rel = f"output/{sub + '/' if sub else ''}{nombre_mp4}"
+        return (
+            f"Video profesional creado: {nombre_mp4}\n"
+            f"Duración: {dm}:{ds:02d} | Tamaño: {size:.1f} MB\n"
+            f"Plataforma: {plataforma} ({w}x{h}) | Transición: {transicion}\n"
+            f"Clips usados: {len(clips_tmp)} | Voz: {voz}\n"
+            f"Guardado en: media/{ruta_rel}"
+        )
+
+    finally:
+        sh.rmtree(str(tmp), ignore_errors=True)
 
 
 def _ebook_crear(
