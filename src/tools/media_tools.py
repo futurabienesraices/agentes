@@ -441,23 +441,29 @@ def _video_transcribir(nombre_archivo: str, idioma: str = "es") -> str:
 def _video_cortar(
     nombre_archivo: str, inicio: str, fin: str, nombre_salida: str
 ) -> str:
-    entrada = _ruta_input(nombre_archivo)
-    salida = _ruta_output(nombre_salida)
+    entrada = _resolver_ruta(nombre_archivo)  # busca en input/ Y output/
+    salida = _ruta_output(nombre_salida if nombre_salida.endswith(".mp4") else nombre_salida + ".mp4")
     _ffmpeg(
+        "-ss", inicio,          # seek rápido antes del -i
         "-i", entrada,
-        "-ss", inicio,
         "-to", fin,
-        "-c", "copy",
+        "-c:v", "libx264",      # recodificar para que sea válido desde cualquier punto
+        "-preset", "fast",
+        "-crf", "23",
+        "-c:a", "aac",
+        "-b:a", "192k",
+        "-movflags", "+faststart",  # moov al inicio = reproducción inmediata
         salida,
+        timeout=180,
     )
     size = os.path.getsize(salida) / (1024 * 1024)
-    return f"Clip creado: {nombre_salida} ({size:.1f} MB)\nGuardado en: media/output/"
+    return f"Clip creado: {os.path.basename(salida)} ({size:.1f} MB)\nGuardado en: media/output/"
 
 
 def _video_extraer_audio(
     nombre_archivo: str, nombre_salida: str, formato: str = "mp3"
 ) -> str:
-    entrada = _ruta_input(nombre_archivo)
+    entrada = _resolver_ruta(nombre_archivo)
     salida = _ruta_output(nombre_salida if nombre_salida.endswith(f".{formato}") else f"{nombre_salida}.{formato}")
     _ffmpeg(
         "-i", entrada,
@@ -477,31 +483,37 @@ def _video_crear_reel(
     duracion_segundos: float = 30,
     caption: str | None = None,
 ) -> str:
-    entrada = _ruta_input(nombre_archivo)
-    salida = _ruta_output(nombre_salida)
-    filtros = "scale=1080:1920:force_original_aspect_ratio=decrease,pad=1080:1920:(ow-iw)/2:(oh-ih)/2"
+    entrada = _resolver_ruta(nombre_archivo)  # busca en input/ Y output/
+    salida = _ruta_output(nombre_salida if nombre_salida.endswith(".mp4") else nombre_salida + ".mp4")
+    filtros = (
+        "scale=1080:1920:force_original_aspect_ratio=decrease,"
+        "pad=1080:1920:(ow-iw)/2:(oh-ih)/2:color=black"
+    )
     if caption:
-        # Escapar caracteres especiales para FFmpeg drawtext
-        texto = caption.replace("'", "\\'").replace(":", "\\:")
+        texto = caption.replace("'", "\\'").replace(":", "\\:").replace(",", "\\,")
         filtros += (
-            f",drawtext=text='{texto}':fontsize=48:fontcolor=white:"
-            f"box=1:boxcolor=black@0.5:boxborderw=10:"
-            f"x=(w-text_w)/2:y=h-text_h-80"
+            f",drawtext=text='{texto}':fontsize=52:fontcolor=white:font=Arial:"
+            f"box=1:boxcolor=black@0.6:boxborderw=12:"
+            f"x=(w-text_w)/2:y=h-text_h-100"
         )
     _ffmpeg(
+        "-ss", inicio,          # seek rápido antes del -i
         "-i", entrada,
-        "-ss", inicio,
-        "-t", str(duracion_segundos),
+        "-t", str(min(duracion_segundos, 60)),
         "-vf", filtros,
         "-c:v", "libx264",
+        "-preset", "fast",
+        "-crf", "22",
         "-c:a", "aac",
         "-b:a", "192k",
+        "-movflags", "+faststart",
         salida,
+        timeout=300,
     )
     size = os.path.getsize(salida) / (1024 * 1024)
     return (
-        f"Reel creado: {nombre_salida}\n"
-        f"Formato: 1080x1920 (vertical 9:16)\n"
+        f"Reel creado: {os.path.basename(salida)}\n"
+        f"Formato: 1080x1920 vertical 9:16\n"
         f"Duración: {duracion_segundos}s | Tamaño: {size:.1f} MB\n"
         f"Guardado en: media/output/"
     )
