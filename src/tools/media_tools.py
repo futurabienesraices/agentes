@@ -419,7 +419,7 @@ def _video_info(nombre_archivo: str) -> str:
 
 def _video_analizar(
     nombre_archivo: str,
-    max_frames: int = 4,
+    max_frames: int = 2,
     tipo_analisis: str = "general",
 ) -> str:
     """Analiza un video extrayendo MÁXIMO max_frames frames distribuidos uniformemente.
@@ -860,7 +860,7 @@ def _video_crear_profesional(
     try:
         # ── 1. Cortar y escalar cada clip ─────────────────────────
         clips_tmp = []
-        for i, c in enumerate(clips):
+        for i, c in enumerate(clips[:6]):  # máx 6 clips
             entrada = _resolver_ruta(c["archivo"])
             inicio = str(c.get("inicio", "0"))
             duracion = float(c.get("duracion", 5))
@@ -870,11 +870,12 @@ def _video_crear_profesional(
                 f"pad={w}:{h}:(ow-iw)/2:(oh-ih)/2:color=black"
             )
             _ffmpeg(
+                "-hwaccel", "auto",           # hardware accel si está disponible
                 "-ss", inicio, "-i", entrada, "-t", str(duracion),
                 "-vf", filtro,
-                "-c:v", "libx264", "-preset", "fast", "-crf", "23",
+                "-c:v", "libx264", "-preset", "ultrafast", "-crf", "26",
                 "-an", "-r", "30",
-                salida_c, timeout=120,
+                salida_c, timeout=90,
             )
             if os.path.exists(salida_c) and os.path.getsize(salida_c) > 10000:
                 clips_tmp.append(salida_c)

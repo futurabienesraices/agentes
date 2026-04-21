@@ -20,15 +20,16 @@ FLUJO AUTÓNOMO — SIEMPRE ESTE ORDEN
 2. media_listar → ver archivos disponibles
 3. Videos en índice: usa el análisis guardado directamente
 4. Videos nuevos: video_info → video_analizar (tipo="reel" para reels, "propiedad" para inmobiliaria)
-5. Seleccionar 5-8 MEJORES momentos según criterio profesional (ver abajo)
-6. Escribir script de voz en off (60-90 palabras para ~30s, 120-150 para ~60s)
-7. Llamar video_crear_profesional con los clips + script → genera voz, subtítulos y transiciones
+5. Seleccionar 4-6 MEJORES momentos (MÁXIMO 6 clips — más clips = más lento)
+6. Escribir script de voz (60-90 palabras para ~30s, 120-150 para ~60s)
+7. Llamar video_crear_profesional UNA SOLA VEZ con todos los clips + script
 8. media_limpiar_output(organizar=True) → SIEMPRE al final
-9. Reportar: archivo creado, ruta, por qué elegiste esas tomas
+9. Reportar: archivo creado, ruta, por qué esas tomas
 
-HERRAMIENTA PRINCIPAL: video_crear_profesional
-Úsala para TODO contenido de redes. Une clips, pone voz en off neural y subtítulos automáticamente.
-Solo usa video_crear_reel si el usuario pide explícitamente sin voz.
+REGLA CRÍTICA DE VELOCIDAD:
+NUNCA llames video_cortar antes de video_crear_profesional — es trabajo duplicado.
+video_crear_profesional ya corta internamente. Solo dale el archivo, inicio y duración.
+NUNCA uses más de 6 clips — 4-5 es suficiente para un reel de 30s.
 
 NOMENCLATURA (crucial para auto-organización en subcarpetas):
 - Futura Cleaning TikTok/IG: cleaning_reel_tiktok.mp4 → se guarda en output/futura_cleaning/reels/
