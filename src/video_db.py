@@ -1,9 +1,10 @@
 """
 Índice permanente de videos analizados.
-Guarda el resultado del análisis asociado al archivo por nombre + tamaño.
-Si el archivo cambia (tamaño diferente), se re-analiza automáticamente.
+Guarda el resultado del análisis usando una huella del contenido del archivo
+(primeros 64KB en MD5) como clave — así el índice sobrevive renombrados.
 """
 from __future__ import annotations
+import hashlib
 import json
 import os
 from datetime import datetime
@@ -27,11 +28,14 @@ def _escribir(data: dict) -> None:
 
 
 def _clave(ruta_archivo: str) -> str:
-    """Clave única: nombre + tamaño en bytes. Si el archivo cambia, se re-analiza."""
+    """Huella del contenido: MD5 de los primeros 64KB + tamaño total.
+    Sobrevive renombrados. Si el archivo cambia, la clave cambia."""
     try:
         size = os.path.getsize(ruta_archivo)
-        nombre = Path(ruta_archivo).name
-        return f"{nombre}:{size}"
+        with open(ruta_archivo, "rb") as f:
+            muestra = f.read(65536)  # primeros 64KB
+        h = hashlib.md5(muestra).hexdigest()[:12]
+        return f"{h}:{size}"
     except Exception:
         return Path(ruta_archivo).name
 
@@ -51,23 +55,23 @@ def guardar_analisis(ruta_archivo: str, tipo_analisis: str, resultado: str) -> N
     if clave not in data:
         data[clave] = {
             "nombre": Path(ruta_archivo).name,
-            "ruta": ruta_archivo,
             "primera_vez": datetime.now().strftime("%Y-%m-%d %H:%M"),
         }
         try:
             data[clave]["tamaño_mb"] = round(os.path.getsize(ruta_archivo) / 1024 / 1024, 1)
         except Exception:
             pass
+    # Actualizar nombre siempre (puede haber sido renombrado)
+    data[clave]["nombre"] = Path(ruta_archivo).name
     data[clave][f"analisis_{tipo_analisis}"] = resultado
     data[clave]["ultima_vez"] = datetime.now().strftime("%Y-%m-%d %H:%M")
     _escribir(data)
 
 
-def obtener_info(ruta_archivo: str) -> dict | None:
+def obtener_info(ruta_archivo: str) -> str | None:
     """Devuelve la info técnica guardada (duración, resolución, etc.)."""
     data = _leer()
-    clave = _clave(ruta_archivo)
-    return data.get(clave, {}).get("info_tecnica")
+    return data.get(_clave(ruta_archivo), {}).get("info_tecnica")
 
 
 def guardar_info(ruta_archivo: str, info: str) -> None:
@@ -77,9 +81,9 @@ def guardar_info(ruta_archivo: str, info: str) -> None:
     if clave not in data:
         data[clave] = {
             "nombre": Path(ruta_archivo).name,
-            "ruta": ruta_archivo,
             "primera_vez": datetime.now().strftime("%Y-%m-%d %H:%M"),
         }
+    data[clave]["nombre"] = Path(ruta_archivo).name
     data[clave]["info_tecnica"] = info
     data[clave]["ultima_vez"] = datetime.now().strftime("%Y-%m-%d %H:%M")
     _escribir(data)
