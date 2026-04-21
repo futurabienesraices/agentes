@@ -105,9 +105,9 @@ def main() -> None:
     )
     parser.add_argument(
         "--pipeline", "-p",
-        choices=["content-cleaning", "content-inmobiliaria", "daily-brief"],
+        choices=["content-cleaning", "content-inmobiliaria", "daily-brief", "publicar-diario"],
         default="",
-        help="Pipeline encadenado. Opciones: content-cleaning | content-inmobiliaria | daily-brief",
+        help="Pipeline encadenado. Opciones: content-cleaning | content-inmobiliaria | daily-brief | publicar-diario",
     )
     args = parser.parse_args()
 

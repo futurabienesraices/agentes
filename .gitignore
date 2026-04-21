@@ -26,3 +26,9 @@ credentials.json
 # Logs
 *.log
 logs/
+
+# Caché de herramientas (no es necesario versionar)
+.cache_herramientas/
+
+# Reportes generados automáticamente
+reportes/

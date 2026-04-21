@@ -156,6 +156,25 @@ class Orquestador:
                 ],
                 "nombre": "Reporte Diario — Tendencias + Plan de Contenido",
             },
+            "publicar-diario": {
+                "pasos": [
+                    ("investigador", (
+                        "Investiga AHORA MISMO qué está funcionando en redes sociales en El Salvador "
+                        "para estos dos negocios:\n\n"
+                        "FUTURA CLEANING — limpieza profesional de sofás, colchones y muebles:\n"
+                        "- Formato ganador (antes/después, proceso, resultado)\n"
+                        "- Hashtags activos ahora\n"
+                        "- Ángulo emocional que más convierte\n\n"
+                        "FUTURA BIENES RAÍCES — venta de casas y terrenos en El Salvador:\n"
+                        "- Tipo de post con más engagement hoy\n"
+                        "- Hashtags activos para El Salvador\n"
+                        "- Qué detalles mostrar primero (precio, ubicación, características)\n\n"
+                        "Solo dame los criterios clave, sin explicaciones largas."
+                    )),
+                    ("marketing", tarea),
+                ],
+                "nombre": "Auto-Publicación Diaria",
+            },
         }
 
         if pipeline not in PIPELINES:

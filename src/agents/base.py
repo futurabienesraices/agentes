@@ -4,6 +4,7 @@ from typing import Any
 import anthropic
 from src.config import ANTHROPIC_API_KEY, MODELO_PRINCIPAL
 from src import memory
+from src import cache as tool_cache
 
 
 class AgenteBase:
@@ -52,7 +53,11 @@ class AgenteBase:
                 resultados_herramientas = []
                 for bloque in respuesta.content:
                     if bloque.type == "tool_use":
-                        resultado = self.ejecutar_herramienta(bloque.name, bloque.input)
+                        # Usar caché para herramientas de lectura costosas
+                        resultado = tool_cache.obtener(bloque.name, bloque.input)
+                        if resultado is None:
+                            resultado = self.ejecutar_herramienta(bloque.name, bloque.input)
+                            tool_cache.guardar(bloque.name, bloque.input, resultado)
                         resultados_herramientas.append({
                             "type": "tool_result",
                             "tool_use_id": bloque.id,
