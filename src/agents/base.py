@@ -68,9 +68,15 @@ class AgenteBase:
         return texto_final
 
     def _guardar_memoria(self, tarea: str, respuesta: str) -> None:
-        # Resumen compacto: tarea + primeras 200 chars de la respuesta
         resumen = f"Tarea: {tarea[:150]} | Respuesta: {respuesta[:200]}"
         memory.guardar(self.nombre, resumen)
+        # Auto-detectar errores en la respuesta y registrarlos
+        resp_lower = respuesta.lower()
+        if any(w in resp_lower for w in ["error:", "no se pudo", "falló", "unknown field", "http error"]):
+            memory.registrar_error(self.nombre, tarea[:200], respuesta[:300])
+        # Auto-detectar aprendizajes cuando la respuesta menciona mejoras
+        if any(w in resp_lower for w in ["aprendí", "mejor forma", "optimizado", "próxima vez", "recomiendo"]):
+            memory.registrar_aprendizaje(self.nombre, respuesta[:300])
 
     @staticmethod
     def _extraer_texto(contenido: list) -> str:

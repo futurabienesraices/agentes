@@ -303,51 +303,59 @@ def _video_info(nombre_archivo: str) -> str:
 
 def _video_analizar(
     nombre_archivo: str,
-    intervalo_segundos: float = 5,
+    max_frames: int = 4,
     tipo_analisis: str = "general",
 ) -> str:
+    """Analiza un video extrayendo MÁXIMO max_frames frames distribuidos uniformemente.
+    Default 4 frames = ~800 tokens. Nunca más de 8 frames para controlar costos."""
     import anthropic as ant
     ruta = _resolver_ruta(nombre_archivo)
     tmp_dir = tempfile.mkdtemp()
 
-    # Extraer frames con FFmpeg
+    # Obtener duración primero
+    try:
+        meta = _ffprobe(ruta)
+        duracion = float(meta.get("format", {}).get("duration", 60))
+    except Exception:
+        duracion = 60
+
+    # Limitar a máximo 8 frames siempre, distribuidos uniformemente
+    max_frames = min(max_frames, 8)
+    intervalo = max(duracion / max_frames, 1)
+
+    # Extraer solo max_frames frames
     patron = os.path.join(tmp_dir, "frame_%03d.jpg")
     _ffmpeg(
         "-i", ruta,
-        "-vf", f"fps=1/{intervalo_segundos}",
-        "-q:v", "3",
+        "-vf", f"fps=1/{intervalo},scale=640:-1",  # escala reducida para menor peso
+        "-vframes", str(max_frames),
+        "-q:v", "5",
         patron,
     )
     frames = sorted(Path(tmp_dir).glob("frame_*.jpg"))
     if not frames:
         return "No se pudieron extraer frames del video."
 
-    # Construir prompt según tipo
     prompts = {
         "propiedad": (
-            "Analiza estos frames de un video de propiedad inmobiliaria. "
-            "Para cada frame indica: número de frame, timestamp aproximado, "
-            "tipo de toma (exterior, sala, cocina, comedor, recámara, baño, jardín, garage, otro), "
-            "descripción breve de lo que se ve, y calidad visual (buena/regular/mala). "
-            "Al final sugiere el orden óptimo para presentar la propiedad (exterior → áreas sociales → recámaras → baños → extras) "
-            "y qué frames descartar por baja calidad."
+            "Analiza estos frames de un video inmobiliario. "
+            "Para cada frame: tipo de toma (exterior/sala/cocina/recámara/baño/otro), "
+            "descripción breve y calidad (buena/regular/mala). "
+            "¿Vale la pena editar este video para redes? ¿Qué tipo de contenido sería?"
         ),
-        "podcast": (
-            "Analiza estos frames de una grabación de podcast o entrevista. "
-            "Identifica: cuándo hay personas hablando, cambios de escena o corte, "
-            "momentos donde podría cortarse para crear clips virales. "
-            "Sugiere los mejores segmentos para clips cortos (30-60 segundos)."
+        "cleaning": (
+            "Analiza estos frames de un video de limpieza de muebles. "
+            "Identifica: qué mueble es (sofá/colchón/sillón), el proceso mostrado, "
+            "si se ve el antes/después. ¿Sirve para reel de TikTok/Instagram?"
         ),
         "reel": (
-            "Analiza estos frames para identificar los momentos más atractivos visualmente. "
-            "Identifica: tomas dinámicas, expresiones emotivas, momentos de acción, "
-            "texto visible, cambios de ritmo. "
-            "Sugiere los mejores 30 segundos para un reel viral, con justificación."
+            "Analiza estos frames. Identifica los momentos más atractivos visualmente. "
+            "¿Cuál sería el mejor hook (primeros 3 segundos)? ¿Sirve para reel viral?"
         ),
         "general": (
-            "Describe en detalle qué hay en cada frame del video. "
-            "Identifica personas, lugares, objetos, acciones, texto visible. "
-            "Crea un índice de contenido con timestamps aproximados."
+            "Describe brevemente qué hay en cada frame. "
+            "Identifica de qué negocio es (limpieza de muebles o propiedad inmobiliaria) "
+            "y qué tipo de contenido es."
         ),
     }
     prompt = prompts.get(tipo_analisis, prompts["general"])
