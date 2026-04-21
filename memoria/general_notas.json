@@ -1,0 +1,10 @@
+{
+  "notas": [
+    {
+      "id": 1,
+      "fecha": "2026-04-21",
+      "titulo": "REGLA: Comandos para el usuario",
+      "contenido": "SIEMPRE que le des un comando git al usuario Ever (iMac), incluye el cd primero. Su proyecto siempre está en ~/Documents/agentes. Formato correcto: cd ~/Documents/agentes && git pull origin <rama>. NUNCA dar solo el git pull suelto."
+    }
+  ]
+}
