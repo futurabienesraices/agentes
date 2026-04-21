@@ -26,31 +26,70 @@ def _escribir(ruta: Path, data: dict) -> None:
     ruta.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
+# ── Notas curadas (controladas manualmente por el usuario) ────
+
+def agregar_nota(agente: str, titulo: str, contenido: str) -> None:
+    """Agrega una nota curada con título. El usuario decide qué guardar aquí."""
+    ruta = _archivo(agente, "notas")
+    data = _leer(ruta)
+    data.setdefault("notas", [])
+    data["notas"].append({
+        "id": len(data["notas"]) + 1,
+        "fecha": datetime.now().strftime("%Y-%m-%d"),
+        "titulo": titulo.strip()[:60],
+        "contenido": contenido.strip()[:500],
+    })
+    _escribir(ruta, data)
+
+
+def listar_notas(agente: str) -> list[dict]:
+    return _leer(_archivo(agente, "notas")).get("notas", [])
+
+
+def borrar_nota(agente: str, nota_id: int) -> bool:
+    ruta = _archivo(agente, "notas")
+    data = _leer(ruta)
+    notas = data.get("notas", [])
+    nuevas = [n for n in notas if n.get("id") != nota_id]
+    if len(nuevas) == len(notas):
+        return False
+    data["notas"] = nuevas
+    _escribir(ruta, data)
+    return True
+
+
 # ── Sesiones (contexto general) ───────────────────────────────
 
 def cargar(agente: str) -> str:
-    """Inyecta en el system prompt: sesiones recientes + errores conocidos + aprendizajes."""
+    """Inyecta en el system prompt: notas curadas + sesiones recientes + errores + aprendizajes."""
     partes = []
 
-    # Últimas 3 sesiones
+    # Notas curadas (máxima prioridad — el usuario las controla)
+    notas = _leer(_archivo(agente, "notas")).get("notas", [])
+    if notas:
+        partes.append("=== NOTAS IMPORTANTES ===")
+        for n in notas:
+            partes.append(f"• [{n['titulo']}] {n['contenido']}")
+
+    # Últimas 2 sesiones (reducido para ahorrar tokens)
     sesiones = _leer(_archivo(agente, "sesiones")).get("entradas", [])
     if sesiones:
-        partes.append("=== SESIONES RECIENTES ===")
-        for e in sesiones[-3:]:
+        partes.append("\n=== SESIONES RECIENTES ===")
+        for e in sesiones[-2:]:
             partes.append(f"[{e['fecha']}] {e['resumen']}")
 
-    # Errores conocidos (máx 5)
+    # Errores conocidos (máx 3)
     errores = _leer(_archivo(agente, "errores")).get("errores", [])
     if errores:
         partes.append("\n=== ERRORES CONOCIDOS — NO REPETIR ===")
-        for e in errores[-5:]:
+        for e in errores[-3:]:
             partes.append(f"• ERROR: {e['error']} → SOLUCIÓN: {e['solucion']}")
 
-    # Aprendizajes (máx 5)
+    # Aprendizajes (máx 3)
     aprendizajes = _leer(_archivo(agente, "aprendizajes")).get("aprendizajes", [])
     if aprendizajes:
-        partes.append("\n=== MEJORES PRÁCTICAS APRENDIDAS ===")
-        for a in aprendizajes[-5:]:
+        partes.append("\n=== MEJORES PRÁCTICAS ===")
+        for a in aprendizajes[-3:]:
             partes.append(f"• {a['aprendizaje']}")
 
     if not partes:

@@ -135,6 +135,27 @@ class Orquestador:
                 ],
                 "nombre": "Investigador → Editor (Bienes Raíces)",
             },
+            "daily-brief": {
+                "pasos": [
+                    ("investigador", (
+                        "Investiga en TikTok, Instagram y Facebook qué está funcionando AHORA MISMO "
+                        "en contenido de redes sociales para DOS negocios en El Salvador:\n\n"
+                        "NEGOCIO 1 — FUTURA CLEANING (limpieza de muebles, sofás y colchones):\n"
+                        "- ¿Qué videos de limpieza/lavado de muebles están viralizando hoy?\n"
+                        "- Duración ideal, formato (antes/después, proceso, resultado), hook de 3s\n"
+                        "- Hashtags que están funcionando ahora para este nicho\n"
+                        "- Ideas concretas de contenido para publicar HOY\n\n"
+                        "NEGOCIO 2 — FUTURA BIENES RAÍCES (venta de casas y terrenos en El Salvador):\n"
+                        "- ¿Qué contenido inmobiliario genera más engagement en El Salvador/Centroamérica?\n"
+                        "- Formatos que funcionan (tours de propiedades, tips, comparativas)\n"
+                        "- Hashtags inmobiliarios ganadores para El Salvador\n"
+                        "- Ideas concretas de contenido para publicar HOY\n\n"
+                        "Da resultados concretos y accionables. Estructura el reporte separado por negocio."
+                    )),
+                    ("marketing", tarea),
+                ],
+                "nombre": "Reporte Diario — Tendencias + Plan de Contenido",
+            },
         }
 
         if pipeline not in PIPELINES:
