@@ -6,6 +6,7 @@ import os
 import subprocess
 import tempfile
 from pathlib import Path
+from src import video_db
 
 CARPETA_MEDIA = os.path.join(os.getcwd(), "media")
 CARPETA_OUTPUT = os.path.join(CARPETA_MEDIA, "output")
@@ -209,6 +210,15 @@ TOOLS_MEDIA: list[dict] = [
         "input_schema": {"type": "object", "properties": {}, "required": []},
     },
     {
+        "name": "media_indexados",
+        "description": (
+            "Lista los videos que ya fueron analizados y están en el índice permanente. "
+            "Úsala ANTES de video_analizar para saber si ya tienes el análisis guardado "
+            "y evitar gastar tokens re-analizando."
+        ),
+        "input_schema": {"type": "object", "properties": {}, "required": []},
+    },
+    {
         "name": "ebook_crear",
         "description": (
             "Crea un ebook profesional en PDF con portada, índice y capítulos. "
@@ -254,6 +264,7 @@ def ejecutar_herramienta(nombre: str, parametros: dict) -> str:
         "video_unir_clips": _video_unir_clips,
         "video_info": _video_info,
         "media_listar": _media_listar,
+        "media_indexados": lambda: video_db.listar_indexados(),
         "ebook_crear": _ebook_crear,
     }
     if nombre not in handlers:
@@ -282,8 +293,12 @@ def _resolver_ruta(nombre_archivo: str) -> str:
 
 def _video_info(nombre_archivo: str) -> str:
     ruta = _resolver_ruta(nombre_archivo)
-    if not os.path.exists(ruta):
-        pass  # dejará que ffprobe falle con mensaje claro
+
+    # Revisar índice permanente primero
+    guardado = video_db.obtener_info(ruta)
+    if guardado:
+        return f"[índice] {guardado}"
+
     meta = _ffprobe(ruta)
     fmt = meta.get("format", {})
     duracion = float(fmt.get("duration", 0))
@@ -291,7 +306,7 @@ def _video_info(nombre_archivo: str) -> str:
     info_video = next(
         (s for s in meta.get("streams", []) if s.get("codec_type") == "video"), {}
     )
-    return (
+    resultado = (
         f"Archivo: {nombre_archivo}\n"
         f"Duración: {int(duracion//60)}:{int(duracion%60):02d}\n"
         f"Resolución: {info_video.get('width','?')}x{info_video.get('height','?')}\n"
@@ -299,6 +314,8 @@ def _video_info(nombre_archivo: str) -> str:
         f"Tamaño: {size_mb:.1f} MB\n"
         f"Codec video: {info_video.get('codec_name','?')}"
     )
+    video_db.guardar_info(ruta, resultado)
+    return resultado
 
 
 def _video_analizar(
@@ -307,9 +324,16 @@ def _video_analizar(
     tipo_analisis: str = "general",
 ) -> str:
     """Analiza un video extrayendo MÁXIMO max_frames frames distribuidos uniformemente.
-    Default 4 frames = ~800 tokens. Nunca más de 8 frames para controlar costos."""
+    Default 4 frames = ~800 tokens. Nunca más de 8 frames para controlar costos.
+    El resultado se guarda permanentemente en media/video_index.json."""
     import anthropic as ant
     ruta = _resolver_ruta(nombre_archivo)
+
+    # Revisar índice permanente antes de hacer cualquier trabajo
+    guardado = video_db.obtener_analisis(ruta, tipo_analisis)
+    if guardado:
+        return f"[índice — analizado anteriormente]\n{guardado}"
+
     tmp_dir = tempfile.mkdtemp()
 
     # Obtener duración primero
@@ -385,7 +409,11 @@ def _video_analizar(
     for f in frames:
         f.unlink()
     os.rmdir(tmp_dir)
-    return respuesta.content[0].text
+
+    resultado = respuesta.content[0].text
+    # Guardar en índice permanente
+    video_db.guardar_analisis(ruta, tipo_analisis, resultado)
+    return resultado
 
 
 def _video_transcribir(nombre_archivo: str, idioma: str = "es") -> str:

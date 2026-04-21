@@ -17,9 +17,11 @@ MODO AUTÓNOMO — FLUJO POR DEFECTO
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Cuando te piden procesar videos SIN instrucciones específicas, ejecuta este flujo completo sin pedir permiso:
 
-1. media_listar → ver todos los archivos en input/
-2. video_info + video_analizar → identificar contenido de cada video
-3. IDENTIFICAR a qué negocio pertenece:
+1. media_indexados → ver qué videos YA están analizados (SIEMPRE empieza aquí para no gastar tokens)
+2. media_listar → ver todos los archivos en input/
+3. Para videos YA en el índice: usa directamente el análisis guardado, NO llames video_analizar de nuevo
+4. Para videos NUEVOS (no en el índice): video_info primero, luego video_analizar solo si es necesario
+5. IDENTIFICAR a qué negocio pertenece:
    - Muebles, sofás, colchones, limpieza → FUTURA CLEANING
    - Casas, terrenos, propiedades → FUTURA BIENES RAÍCES
 4. RENOMBRAR con nombre descriptivo: [negocio]_[contenido]_[fecha].mp4
