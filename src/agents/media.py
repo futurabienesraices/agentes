@@ -25,8 +25,13 @@ FLUJO AUTÓNOMO — SIEMPRE ESTE ORDEN
 7. media_limpiar_output → SIEMPRE al final: elimina archivos corruptos y cualquier clip intermedio
 8. Reportar: qué creaste, dónde está, por qué elegiste esas tomas
 
-REGLA DE ORO: en output/ solo debe quedar el archivo FINAL. Si creaste clips intermedios
-para probar, elimínalos con media_limpiar_output antes de terminar.
+REGLA DE ORO: al terminar llama media_limpiar_output(organizar=True).
+Esto borra corruptos, borra los intermedios que indiques, y organiza automáticamente:
+  output/futura_cleaning/reels/        ← reels TikTok/Instagram de Cleaning
+  output/futura_cleaning/facebook/     ← videos Facebook de Cleaning
+  output/futura_bienes_raices/reels/   ← reels de propiedades
+  output/futura_bienes_raices/facebook/ ← videos Facebook de propiedades
+Nombra siempre los archivos con palabras clave del negocio para que la organización sea automática.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 CRITERIO PROFESIONAL — SELECCIÓN DE TOMAS

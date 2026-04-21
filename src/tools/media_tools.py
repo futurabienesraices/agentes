@@ -221,9 +221,11 @@ TOOLS_MEDIA: list[dict] = [
     {
         "name": "media_limpiar_output",
         "description": (
-            "Limpia la carpeta media/output/: elimina archivos corruptos (menos de 500KB), "
-            "archivos intermedios o temporales, y opcionalmente archivos específicos por nombre. "
-            "Llama SIEMPRE al final de cada tarea de edición para no acumular basura."
+            "Limpia y organiza media/output/: "
+            "elimina archivos corruptos (<500KB) y los indicados en 'eliminar', "
+            "y mueve los buenos a subcarpetas por negocio y tipo "
+            "(futura_cleaning/reels/, futura_bienes_raices/facebook/, etc.). "
+            "Llama SIEMPRE al final de cada tarea de edición."
         ),
         "input_schema": {
             "type": "object",
@@ -231,13 +233,13 @@ TOOLS_MEDIA: list[dict] = [
                 "eliminar": {
                     "type": "array",
                     "items": {"type": "string"},
-                    "description": "Lista de nombres de archivos a eliminar (clips intermedios, defectuosos, etc.)",
+                    "description": "Nombres de archivos intermedios o defectuosos a borrar",
                     "default": [],
                 },
-                "solo_corruptos": {
+                "organizar": {
                     "type": "boolean",
-                    "description": "Si true, solo elimina archivos menores a 500KB (probablemente corruptos)",
-                    "default": False,
+                    "description": "Mover archivos buenos a subcarpetas organizadas (default: true)",
+                    "default": True,
                 },
             },
             "required": [],
@@ -608,50 +610,96 @@ def _media_listar() -> str:
 
 def _media_limpiar_output(
     eliminar: list[str] | None = None,
-    solo_corruptos: bool = False,
+    organizar: bool = True,
 ) -> str:
-    """Elimina archivos corruptos e intermedios de media/output/."""
-    MIN_BYTES = 500 * 1024  # 500 KB — menos que esto = corrupto
-    borrados = []
-    errores = []
+    """Limpia y organiza media/output/.
+    - Elimina archivos corruptos (<500KB) y los indicados en 'eliminar'
+    - Organiza los buenos en subcarpetas por negocio y tipo
+    Estructura final:
+      output/futura_cleaning/reels/   output/futura_cleaning/facebook/
+      output/futura_bienes_raices/reels/  output/futura_bienes_raices/facebook/
+    """
+    MIN_BYTES = 500 * 1024  # 500 KB
+    EXTS_VIDEO = {".mp4", ".mov", ".avi", ".mkv", ".webm", ".m4v"}
     output = Path(CARPETA_OUTPUT)
     output.mkdir(exist_ok=True)
 
-    # 1. Eliminar archivos específicos solicitados
-    for nombre in (eliminar or []):
-        ruta = output / nombre
-        if not ruta.exists():
-            # Buscar en subdirectorios
-            encontrados = list(output.rglob(nombre))
-            ruta = encontrados[0] if encontrados else ruta
-        if ruta.exists():
-            try:
-                ruta.unlink()
-                borrados.append(nombre)
-            except Exception as e:
-                errores.append(f"{nombre}: {e}")
+    borrados, movidos, errores = [], [], []
 
-    # 2. Eliminar archivos corruptos (tamaño menor al mínimo)
-    EXTS_VIDEO = {".mp4", ".mov", ".avi", ".mkv", ".webm", ".m4v"}
-    for f in output.rglob("*"):
+    # 1. Borrar archivos corruptos (< 500KB)
+    for f in list(output.rglob("*")):
         if f.is_file() and f.suffix.lower() in EXTS_VIDEO:
             if f.stat().st_size < MIN_BYTES:
                 try:
+                    size = f.stat().st_size
                     f.unlink()
-                    borrados.append(f"{f.name} (corrupto — {f.stat().st_size if f.exists() else 0}B)")
+                    borrados.append(f"{f.name} ({size}B — corrupto)")
                 except Exception:
                     pass
 
-    if not borrados and not errores:
-        return "output/ ya estaba limpia. No se eliminó nada."
+    # 2. Borrar archivos específicos indicados
+    for nombre in (eliminar or []):
+        candidatos = [output / nombre] + list(output.rglob(nombre))
+        for ruta in candidatos:
+            if ruta.exists():
+                try:
+                    ruta.unlink()
+                    borrados.append(nombre)
+                except Exception as e:
+                    errores.append(f"{nombre}: {e}")
+                break
 
-    lineas = [f"Limpieza completada — {len(borrados)} archivo(s) eliminado(s):"]
-    for b in borrados:
-        lineas.append(f"  ✗ {b}")
+    # 3. Organizar archivos buenos en subcarpetas
+    if organizar:
+        CARPETAS = {
+            # (palabras clave en nombre) → subcarpeta destino
+            ("cleaning", "limpieza", "sofa", "colchon", "mueble"): {
+                ("reel", "tiktok", "instagram", "vertical"): "futura_cleaning/reels",
+                ("facebook", "fb", "horizontal"):               "futura_cleaning/facebook",
+                ():                                             "futura_cleaning",
+            },
+            ("fbr", "bienes", "casa", "terreno", "propiedad", "inmobiliaria"): {
+                ("reel", "tiktok", "instagram", "vertical"): "futura_bienes_raices/reels",
+                ("facebook", "fb", "horizontal", "tour"):    "futura_bienes_raices/facebook",
+                ():                                          "futura_bienes_raices",
+            },
+        }
+
+        for f in list(output.glob("*")):
+            if not f.is_file() or f.suffix.lower() not in EXTS_VIDEO:
+                continue
+            nombre_lower = f.name.lower()
+            destino_rel = None
+
+            for palabras_negocio, tipos in CARPETAS.items():
+                if any(p in nombre_lower for p in palabras_negocio):
+                    for palabras_tipo, carpeta in tipos.items():
+                        if not palabras_tipo or any(p in nombre_lower for p in palabras_tipo):
+                            destino_rel = carpeta
+                            break
+                    break
+
+            if destino_rel:
+                destino = output / destino_rel
+                destino.mkdir(parents=True, exist_ok=True)
+                nuevo = destino / f.name
+                if not nuevo.exists():
+                    f.rename(nuevo)
+                    movidos.append(f"{f.name} → output/{destino_rel}/")
+
+    lineas = ["=== Limpieza y organización de output/ ==="]
+    if borrados:
+        lineas.append(f"\nEliminados ({len(borrados)}):")
+        for b in borrados:
+            lineas.append(f"  ✗ {b}")
+    if movidos:
+        lineas.append(f"\nOrganizados ({len(movidos)}):")
+        for m in movidos:
+            lineas.append(f"  → {m}")
+    if not borrados and not movidos:
+        lineas.append("Todo en orden, no se requirió ningún cambio.")
     if errores:
-        lineas.append("Errores:")
-        for e in errores:
-            lineas.append(f"  ! {e}")
+        lineas.append(f"\nErrores: {', '.join(errores)}")
     return "\n".join(lineas)
 
 
