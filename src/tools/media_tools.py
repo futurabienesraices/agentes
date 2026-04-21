@@ -27,10 +27,10 @@ def _ruta_output(nombre: str) -> str:
     return os.path.join(CARPETA_OUTPUT, nombre)
 
 
-def _ffmpeg(*args) -> tuple[str, str]:
-    """Ejecuta FFmpeg y devuelve (stdout, stderr)."""
+def _ffmpeg(*args, timeout: int = 120) -> tuple[str, str]:
+    """Ejecuta FFmpeg con timeout de seguridad (default 2 min)."""
     cmd = ["ffmpeg", "-y"] + list(args)
-    r = subprocess.run(cmd, capture_output=True, text=True)
+    r = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
     if r.returncode != 0:
         raise RuntimeError(f"FFmpeg error:\n{r.stderr[-1000:]}")
     return r.stdout, r.stderr
@@ -41,7 +41,7 @@ def _ffprobe(ruta: str) -> dict:
     r = subprocess.run(
         ["ffprobe", "-v", "quiet", "-print_format", "json",
          "-show_streams", "-show_format", ruta],
-        capture_output=True, text=True
+        capture_output=True, text=True, timeout=30,
     )
     if r.returncode != 0:
         raise RuntimeError(f"ffprobe error: {r.stderr}")
@@ -66,10 +66,10 @@ TOOLS_MEDIA: list[dict] = [
                     "type": "string",
                     "description": "Nombre del video en la carpeta media/input/",
                 },
-                "intervalo_segundos": {
-                    "type": "number",
-                    "description": "Extraer un frame cada N segundos (default: 5)",
-                    "default": 5,
+                "max_frames": {
+                    "type": "integer",
+                    "description": "Máximo de frames a extraer (default: 4, máx: 8). Más frames = más tokens.",
+                    "default": 4,
                 },
                 "tipo_analisis": {
                     "type": "string",
@@ -363,10 +363,10 @@ def _video_analizar(
     # Enviar frames a Claude Vision
     client = ant.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
     content = [{"type": "text", "text": prompt}]
-    for i, frame_path in enumerate(frames[:20]):  # máx 20 frames
+    for i, frame_path in enumerate(frames[:8]):  # máx 8 frames
         with open(frame_path, "rb") as f:
             data = base64.standard_b64encode(f.read()).decode()
-        ts = int(i * intervalo_segundos)
+        ts = int(i * intervalo)
         content.append({
             "type": "text",
             "text": f"\n--- Frame {i+1} (≈{ts//60}:{ts%60:02d}) ---"

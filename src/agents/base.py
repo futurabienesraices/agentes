@@ -1,10 +1,26 @@
 """Clase base para todos los agentes del equipo."""
 from __future__ import annotations
 from typing import Any
+import sys
 import anthropic
 from src.config import ANTHROPIC_API_KEY, MODELO_PRINCIPAL
 from src import memory
 from src import cache as tool_cache
+
+_ETIQUETAS_HERRAMIENTAS = {
+    "video_analizar":        "Analizando video (puede tardar ~30s por video)...",
+    "video_info":            "Leyendo info del video...",
+    "video_crear_reel":      "Creando reel...",
+    "video_cortar":          "Cortando clip...",
+    "video_unir_clips":      "Uniendo clips...",
+    "video_transcribir":     "Transcribiendo audio (puede tardar varios minutos)...",
+    "media_listar":          "Listando archivos media...",
+    "web_buscar":            "Buscando en internet...",
+    "airtable_listar":       "Consultando Airtable...",
+    "social_insights_posts_fb": "Obteniendo métricas de Facebook...",
+    "social_insights_posts_ig": "Obteniendo métricas de Instagram...",
+    "social_publicar_facebook": "Publicando en Facebook...",
+}
 
 
 class AgenteBase:
@@ -53,11 +69,20 @@ class AgenteBase:
                 resultados_herramientas = []
                 for bloque in respuesta.content:
                     if bloque.type == "tool_use":
+                        etiqueta = _ETIQUETAS_HERRAMIENTAS.get(
+                            bloque.name,
+                            f"Usando {bloque.name}...",
+                        )
+                        print(f"  ⚙ {etiqueta}", flush=True)
+
                         # Usar caché para herramientas de lectura costosas
                         resultado = tool_cache.obtener(bloque.name, bloque.input)
                         if resultado is None:
                             resultado = self.ejecutar_herramienta(bloque.name, bloque.input)
                             tool_cache.guardar(bloque.name, bloque.input, resultado)
+                        else:
+                            print("    (resultado desde caché)", flush=True)
+
                         resultados_herramientas.append({
                             "type": "tool_result",
                             "tool_use_id": bloque.id,
