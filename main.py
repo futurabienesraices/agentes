@@ -43,13 +43,15 @@ BANNER = """
 """
 
 
-def ejecutar_tarea(tarea: str, agente: str = "auto") -> None:
+def ejecutar_tarea(tarea: str, agente: str = "auto", pipeline: str = "") -> None:
     from src.agents.orchestrator import Orquestador
 
     orquestador = Orquestador()
 
     with console.status("[bold cyan]Procesando...[/bold cyan]", spinner="dots"):
-        if agente == "auto":
+        if pipeline:
+            respuesta = orquestador.ejecutar_pipeline(pipeline, tarea, verbose=True)
+        elif agente == "auto":
             respuesta = orquestador.ejecutar(tarea, verbose=False)
         else:
             respuesta = orquestador.ejecutar_con_agente(agente, tarea)
@@ -95,18 +97,23 @@ def main() -> None:
         help="Tarea a ejecutar (opcional — si no se proporciona, modo interactivo)",
     )
     parser.add_argument(
-        "--agente",
-        "-a",
+        "--agente", "-a",
         choices=list(AGENTES_DISPONIBLES.keys()),
         default="auto",
         metavar="AGENTE",
-        help=f"Agente a usar (por defecto: auto). Opciones: {', '.join(AGENTES_DISPONIBLES.keys())}",
+        help=f"Agente a usar. Opciones: {', '.join(AGENTES_DISPONIBLES.keys())}",
+    )
+    parser.add_argument(
+        "--pipeline", "-p",
+        choices=["content-cleaning", "content-inmobiliaria"],
+        default="",
+        help="Pipeline encadenado: investigador → editor. content-cleaning | content-inmobiliaria",
     )
     args = parser.parse_args()
 
     if args.tarea:
         try:
-            ejecutar_tarea(args.tarea, agente=args.agente)
+            ejecutar_tarea(args.tarea, agente=args.agente, pipeline=args.pipeline)
         except Exception as exc:
             console.print(f"[bold red]Error:[/bold red] {exc}")
             sys.exit(1)

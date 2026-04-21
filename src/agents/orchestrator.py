@@ -94,6 +94,75 @@ class Orquestador:
             raise ValueError(f"Agente '{tipo_agente}' no existe. Opciones: {opciones}")
         return self._agentes[tipo_agente]().ejecutar(tarea)
 
+    def ejecutar_pipeline(self, pipeline: str, tarea: str, verbose: bool = True) -> str:
+        """Encadena agentes: la salida de uno es el contexto del siguiente."""
+        PIPELINES = {
+            "content-cleaning": {
+                "pasos": [
+                    ("investigador", (
+                        "Investiga en TikTok, Instagram y Reels qué tipo de videos de "
+                        "limpieza de muebles (sofás, colchones) están viralizando AHORA en "
+                        "Latinoamérica. Necesito: "
+                        "1) Duración ideal del video, "
+                        "2) Estructura del hook (primeros 3 segundos), "
+                        "3) Tipo de música, "
+                        "4) Uso de texto/subtítulos en pantalla, "
+                        "5) Tipo de voz en off si aplica, "
+                        "6) Hashtags ganadores, "
+                        "7) Ejemplos de captions virales. "
+                        "Responde con criterios concretos y accionables para un editor de video."
+                    )),
+                    ("media", tarea),
+                ],
+                "nombre": "Investigador → Editor (Futura Cleaning)",
+            },
+            "content-inmobiliaria": {
+                "pasos": [
+                    ("investigador", (
+                        "Investiga en TikTok, Instagram y Facebook qué tipo de videos "
+                        "inmobiliarios están funcionando mejor AHORA en Latinoamérica y El Salvador. "
+                        "Necesito: "
+                        "1) Duración ideal por plataforma, "
+                        "2) Estructura del video (orden de tomas), "
+                        "3) Texto y subtítulos en pantalla, "
+                        "4) Voz en off: ¿sí o no? ¿qué estilo?, "
+                        "5) Música recomendada, "
+                        "6) Hashtags ganadores para El Salvador, "
+                        "7) Qué información del precio mostrar y cómo. "
+                        "Criterios concretos para editor de video."
+                    )),
+                    ("media", tarea),
+                ],
+                "nombre": "Investigador → Editor (Bienes Raíces)",
+            },
+        }
+
+        if pipeline not in PIPELINES:
+            opciones = ", ".join(PIPELINES.keys())
+            raise ValueError(f"Pipeline '{pipeline}' no existe. Opciones: {opciones}")
+
+        config = PIPELINES[pipeline]
+        contexto = ""
+        resultado = ""
+
+        for i, (tipo_agente, tarea_paso) in enumerate(config["pasos"]):
+            nombre_agente = self._nombres.get(tipo_agente, tipo_agente)
+            if verbose:
+                print(f"\n[Paso {i+1}/{len(config['pasos'])} — {nombre_agente}]\n")
+
+            if contexto:
+                tarea_completa = (
+                    f"CRITERIOS DEL INVESTIGADOR:\n{contexto}\n\n"
+                    f"TU TAREA (aplica los criterios anteriores):\n{tarea_paso}"
+                )
+            else:
+                tarea_completa = tarea_paso
+
+            resultado = self._agentes[tipo_agente]().ejecutar(tarea_completa)
+            contexto = resultado
+
+        return resultado
+
     def listar_agentes(self) -> str:
         generales = [k for k in self._agentes if not k.startswith("inmobiliaria_")]
         especializados = [k for k in self._agentes if k.startswith("inmobiliaria_")]
