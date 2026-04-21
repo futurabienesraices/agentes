@@ -541,7 +541,9 @@ def _video_cortar(
     nombre_archivo: str, inicio: str, fin: str, nombre_salida: str
 ) -> str:
     entrada = _resolver_ruta(nombre_archivo)  # busca en input/ Y output/
-    salida = _ruta_output(nombre_salida if nombre_salida.endswith(".mp4") else nombre_salida + ".mp4")
+    nombre_mp4 = nombre_salida if nombre_salida.endswith(".mp4") else nombre_salida + ".mp4"
+    sub_carpeta = _subcarpeta_por_nombre(nombre_mp4)
+    salida = _ruta_output(nombre_mp4, sub_carpeta)
     _ffmpeg(
         "-ss", inicio,          # seek rápido antes del -i
         "-i", entrada,
@@ -556,7 +558,8 @@ def _video_cortar(
         timeout=180,
     )
     size = os.path.getsize(salida) / (1024 * 1024)
-    return f"Clip creado: {os.path.basename(salida)} ({size:.1f} MB)\nGuardado en: media/output/"
+    destino_rel = f"output/{sub_carpeta + '/' if sub_carpeta else ''}{nombre_mp4}"
+    return f"Clip creado: {nombre_mp4} ({size:.1f} MB)\nGuardado en: media/{destino_rel}"
 
 
 def _video_extraer_audio(
@@ -756,7 +759,11 @@ def _media_limpiar_output(
                 destino = output / destino_rel
                 destino.mkdir(parents=True, exist_ok=True)
                 nuevo = destino / f.name
-                if not nuevo.exists():
+                if nuevo.exists():
+                    # Ya existe en subcarpeta — el de raíz es un duplicado
+                    f.unlink()
+                    borrados.append(f"{f.name} (duplicado eliminado de output/)")
+                else:
                     f.rename(nuevo)
                     movidos.append(f"{f.name} → output/{destino_rel}/")
 

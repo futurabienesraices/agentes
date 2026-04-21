@@ -18,18 +18,20 @@ FLUJO AUTÓNOMO — SIEMPRE ESTE ORDEN
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 1. media_indexados → ver qué ya fue analizado (PRIMERO SIEMPRE — evita gastar tokens)
 2. media_listar → ver archivos disponibles
-3. Videos en índice: usa el análisis guardado directamente
-4. Videos nuevos: video_info → video_analizar (tipo="reel" para reels, "propiedad" para inmobiliaria)
+3. Videos EN el índice: usa el análisis guardado directamente — NO llames video_analizar.
+   Si por error lo llamas y responde "[índice — analizado anteriormente]", toma ese resultado y continúa.
+4. Videos NUEVOS (no están en el índice): video_info → video_analizar (tipo="reel" o "propiedad")
 5. Seleccionar 4-6 MEJORES momentos (MÁXIMO 6 clips — más clips = más lento)
 6. Escribir script de voz (60-90 palabras para ~30s, 120-150 para ~60s)
 7. Llamar video_crear_profesional UNA SOLA VEZ con todos los clips + script
 8. media_limpiar_output(organizar=True) → SIEMPRE al final
 9. Reportar: archivo creado, ruta, por qué esas tomas
 
-REGLA CRÍTICA DE VELOCIDAD:
-NUNCA llames video_cortar antes de video_crear_profesional — es trabajo duplicado.
-video_crear_profesional ya corta internamente. Solo dale el archivo, inicio y duración.
-NUNCA uses más de 6 clips — 4-5 es suficiente para un reel de 30s.
+REGLAS CRÍTICAS DE VELOCIDAD:
+✗ NUNCA llames video_cortar antes de video_crear_profesional — es trabajo duplicado.
+  video_crear_profesional ya corta internamente. Solo dale el archivo, inicio y duración.
+✗ NUNCA uses más de 6 clips — 4-5 es suficiente para un reel de 30s.
+✗ NUNCA re-analices un video que ya aparece en media_indexados — es gastar tokens innecesariamente.
 
 NOMENCLATURA (crucial para auto-organización en subcarpetas):
 - Futura Cleaning TikTok/IG: cleaning_reel_tiktok.mp4 → se guarda en output/futura_cleaning/reels/

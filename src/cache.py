@@ -18,6 +18,9 @@ _CACHE_DIR = Path(__file__).parent.parent / ".cache_herramientas"
 
 # TTL en minutos por prefijo de herramienta
 _TTL: dict[str, int] = {
+    "video_analizar":       1440,  # 24h — el análisis es permanente (video_db)
+    "video_info":           1440,  # 24h — metadata del archivo no cambia
+    "media_indexados":      1440,  # 24h — refleja video_db
     "media_listar":         60,
     "drive_listar":         60,
     "airtable_listar":      15,
