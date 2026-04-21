@@ -829,6 +829,15 @@ def _generar_voz(texto: str, salida: str, voz: str = "es-MX-DaliaNeural") -> Non
         gTTS(text=texto, lang="es", slow=False).save(salida)
 
 
+def _parse_tiempo(t: str) -> float:
+    """Convierte '1:20', '00:05' o '80' a segundos."""
+    t = str(t).strip()
+    if ":" in t:
+        p = t.split(":")
+        return int(p[0]) * 3600 + int(p[1]) * 60 + float(p[2]) if len(p) == 3 else int(p[0]) * 60 + float(p[1])
+    return float(t)
+
+
 def _video_crear_profesional(
     clips: list[dict],
     script_voz: str,
@@ -837,119 +846,108 @@ def _video_crear_profesional(
     transicion: str = "fade",
     voz: str = "es-MX-DaliaNeural",
 ) -> str:
-    """
-    Editor profesional completo:
-    1. Corta clips y los escala al formato de la plataforma
-    2. Une con transiciones xfade
-    3. Genera voz en off neural (TTS)
-    4. Quema subtítulos estilizados sincronizados con la voz
-    5. Guarda en la subcarpeta correcta de output/
-    """
+    """Editor profesional con MoviePy: clips + crossfade + TTS + subtítulos."""
+    try:
+        from moviepy import (
+            VideoFileClip, AudioFileClip,
+            concatenate_videoclips, CompositeVideoClip, TextClip,
+        )
+    except ImportError:
+        return "Falta moviepy. Ejecuta: pip install moviepy"
+
     import shutil as sh
 
-    RESOLUCIONES = {
-        "tiktok":    (1080, 1920),
-        "instagram": (1080, 1920),
-        "facebook":  (1920, 1080),
-        "youtube":   (1920, 1080),
-    }
+    RESOLUCIONES = {"tiktok": (1080, 1920), "instagram": (1080, 1920),
+                    "facebook": (1920, 1080), "youtube": (1920, 1080)}
     w, h = RESOLUCIONES.get(plataforma, (1080, 1920))
-    DUR_T = 0.4  # duración de transición en segundos
     tmp = Path(tempfile.mkdtemp(prefix="futura_"))
 
     try:
-        # ── 1. Cortar y escalar cada clip ─────────────────────────
-        clips_tmp = []
-        for i, c in enumerate(clips[:6]):  # máx 6 clips
+        # ── 1. Cargar clips ───────────────────────────────────────
+        video_clips = []
+        for c in clips[:6]:
             entrada = _resolver_ruta(c["archivo"])
-            inicio = str(c.get("inicio", "0"))
-            duracion = float(c.get("duracion", 5))
-            salida_c = str(tmp / f"c{i:02d}.mp4")
-            filtro = (
-                f"scale={w}:{h}:force_original_aspect_ratio=decrease,"
-                f"pad={w}:{h}:(ow-iw)/2:(oh-ih)/2:color=black"
-            )
-            _ffmpeg(
-                "-hwaccel", "auto",           # hardware accel si está disponible
-                "-ss", inicio, "-i", entrada, "-t", str(duracion),
-                "-vf", filtro,
-                "-c:v", "libx264", "-preset", "ultrafast", "-crf", "26",
-                "-an", "-r", "30",
-                salida_c, timeout=90,
-            )
-            if os.path.exists(salida_c) and os.path.getsize(salida_c) > 10000:
-                clips_tmp.append(salida_c)
+            inicio  = _parse_tiempo(c.get("inicio", "0"))
+            dur     = float(c.get("duracion", 5))
+            clip = VideoFileClip(entrada, audio=False).subclipped(inicio, inicio + dur)
+            # Escalar y recortar al formato objetivo
+            if clip.w / clip.h > w / h:
+                clip = clip.resized(height=h).cropped(x_center=clip.w / 2, width=w)
+            else:
+                clip = clip.resized(width=w).cropped(y_center=clip.h / 2, height=h)
+            video_clips.append(clip)
 
-        if not clips_tmp:
-            return "Error: no se pudo cortar ningún clip. Verifica los archivos y tiempos."
+        if not video_clips:
+            return "Error: no se cargó ningún clip."
 
-        # ── 2. Unir con xfade ─────────────────────────────────────
-        joined = str(tmp / "joined.mp4")
-        if len(clips_tmp) == 1:
-            sh.copy(clips_tmp[0], joined)
-        else:
-            durs = [float(_ffprobe(c)["format"]["duration"]) for c in clips_tmp]
-            inputs_cmd = []
-            for c in clips_tmp:
-                inputs_cmd += ["-i", c]
-            fp, prev, offset = [], "[0:v]", durs[0] - DUR_T
-            for i in range(1, len(clips_tmp)):
-                sv = "[vout]" if i == len(clips_tmp) - 1 else f"[v{i}]"
-                fp.append(
-                    f"{prev}[{i}:v]xfade=transition={transicion}:"
-                    f"duration={DUR_T}:offset={max(offset,0):.3f}{sv}"
-                )
-                prev = sv
-                offset += durs[i] - DUR_T
-            _ffmpeg(
-                *inputs_cmd,
-                "-filter_complex", ";".join(fp),
-                "-map", "[vout]",
-                "-c:v", "libx264", "-preset", "fast", "-crf", "22",
-                "-movflags", "+faststart",
-                joined, timeout=300,
-            )
+        # ── 2. Concatenar con crossfade ───────────────────────────
+        video_final = concatenate_videoclips(video_clips, padding=-0.3, method="compose")
+        dur_total   = video_final.duration
 
-        dur_total = float(_ffprobe(joined)["format"]["duration"])
-
-        # ── 3. Generar voz en off ─────────────────────────────────
+        # ── 3. Voz en off ─────────────────────────────────────────
         voz_path = str(tmp / "voz.mp3")
-        print("  ⚙ Generando voz en off (TTS neural)...", flush=True)
+        print("  ⚙ Generando voz en off...", flush=True)
         _generar_voz(script_voz, voz_path, voz)
+        audio_voz = AudioFileClip(voz_path)
 
-        # ── 4. Generar ASS subtítulos ─────────────────────────────
-        ass_path = str(tmp / "subs.ass")
-        _generar_ass(script_voz, dur_total, ass_path, w, h)
-        # Escapar la ruta para el filtro FFmpeg (macOS/Linux)
-        ass_escaped = ass_path.replace("\\", "/").replace(":", "\\:")
+        # Alargar video si la voz es más larga
+        if audio_voz.duration > dur_total:
+            extra = audio_voz.duration - dur_total + 0.5
+            video_clips[-1] = video_clips[-1].with_duration(video_clips[-1].duration + extra)
+            video_final = concatenate_videoclips(video_clips, padding=-0.3, method="compose")
+            dur_total = video_final.duration
 
-        # ── 5. Combinar video + voz + subtítulos ──────────────────
-        nombre_mp4 = nombre_salida if nombre_salida.endswith(".mp4") else nombre_salida + ".mp4"
-        sub = _subcarpeta_por_nombre(nombre_mp4, plataforma)
-        salida_final = _ruta_output(nombre_mp4, sub)
+        video_final = video_final.with_audio(audio_voz.with_duration(dur_total))
 
-        _ffmpeg(
-            "-i", joined, "-i", voz_path,
-            "-filter_complex",
-            f"[0:v]ass='{ass_escaped}'[vf];"
-            f"[1:a]atrim=0:{dur_total:.3f},apad=pad_dur=2[af]",
-            "-map", "[vf]", "-map", "[af]",
-            "-c:v", "libx264", "-preset", "fast", "-crf", "22",
-            "-c:a", "aac", "-b:a", "192k",
-            "-movflags", "+faststart", "-shortest",
-            salida_final, timeout=400,
+        # ── 4. Subtítulos ─────────────────────────────────────────
+        palabras = script_voz.split()
+        PPL      = 6
+        grupos   = [" ".join(palabras[i:i+PPL]) for i in range(0, len(palabras), PPL)]
+        tpg      = dur_total / max(len(grupos), 1)
+        fs       = max(42, int(h * 0.038))
+
+        capas = [video_final]
+        for i, grupo in enumerate(grupos):
+            try:
+                txt = (
+                    TextClip(text=grupo, font_size=fs, color="white",
+                             stroke_color="black", stroke_width=3,
+                             font="Arial-Bold", method="label", size=(w - 80, None))
+                    .with_start(i * tpg).with_duration(tpg)
+                    .with_position(("center", int(h * 0.82)))
+                )
+                capas.append(txt)
+            except Exception:
+                pass
+
+        video_con_subs = CompositeVideoClip(capas, size=(w, h))
+
+        # ── 5. Exportar ───────────────────────────────────────────
+        nombre_mp4  = nombre_salida if nombre_salida.endswith(".mp4") else nombre_salida + ".mp4"
+        sub_carpeta = _subcarpeta_por_nombre(nombre_mp4, plataforma)
+        salida      = _ruta_output(nombre_mp4, sub_carpeta)
+
+        print("  ⚙ Renderizando...", flush=True)
+        video_con_subs.write_videofile(
+            salida, fps=30, codec="libx264", audio_codec="aac",
+            preset="ultrafast", threads=4, logger=None,
         )
 
-        size = os.path.getsize(salida_final) / (1024 * 1024)
+        for c in video_clips:
+            c.close()
+        audio_voz.close()
+
+        size   = os.path.getsize(salida) / (1024 * 1024)
         dm, ds = int(dur_total // 60), int(dur_total % 60)
-        ruta_rel = f"output/{sub + '/' if sub else ''}{nombre_mp4}"
         return (
             f"Video profesional creado: {nombre_mp4}\n"
             f"Duración: {dm}:{ds:02d} | Tamaño: {size:.1f} MB\n"
-            f"Plataforma: {plataforma} ({w}x{h}) | Transición: {transicion}\n"
-            f"Clips usados: {len(clips_tmp)} | Voz: {voz}\n"
-            f"Guardado en: media/{ruta_rel}"
+            f"Plataforma: {plataforma} ({w}x{h}) | Clips: {len(video_clips)}\n"
+            f"Guardado en: media/output/{sub_carpeta + '/' if sub_carpeta else ''}{nombre_mp4}"
         )
+
+    except Exception as exc:
+        return f"Error al crear el video: {exc}"
 
     finally:
         sh.rmtree(str(tmp), ignore_errors=True)
