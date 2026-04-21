@@ -836,6 +836,33 @@ def _generar_voz(texto: str, salida: str, voz: str = "es-MX-DaliaNeural") -> Non
         gTTS(text=texto, lang="es", slow=False).save(salida)
 
 
+def _transcodar_si_hevc(ruta: str, tmp: Path) -> str:
+    """Si el video es HEVC/H.265 (iPhone) lo transcodifica a H.264 compatible con MoviePy."""
+    try:
+        meta = _ffprobe(ruta)
+        codec = next(
+            (s.get("codec_name", "").lower()
+             for s in meta.get("streams", []) if s.get("codec_type") == "video"),
+            "",
+        )
+        if codec in ("hevc", "h265", "vp9"):
+            salida = str(tmp / (Path(ruta).stem + "_h264.mp4"))
+            print(f"  ⚙ Transcodificando {Path(ruta).name} (HEVC→H.264)...", flush=True)
+            _ffmpeg(
+                "-i", ruta,
+                "-c:v", "libx264", "-preset", "fast", "-crf", "23",
+                "-c:a", "aac", "-b:a", "192k",
+                "-tag:v", "avc1",       # compatibilidad máxima
+                "-map_metadata", "-1",  # elimina metadata Dolby Vision que causa errores
+                salida,
+                timeout=300,
+            )
+            return salida
+    except Exception:
+        pass
+    return ruta
+
+
 def _parse_tiempo(t: str) -> float:
     """Convierte '1:20', '00:05' o '80' a segundos."""
     t = str(t).strip()
@@ -870,10 +897,10 @@ def _video_crear_profesional(
     tmp = Path(tempfile.mkdtemp(prefix="futura_"))
 
     try:
-        # ── 1. Cargar clips ───────────────────────────────────────
+        # ── 1. Cargar clips (transcodificando HEVC si es necesario) ──
         video_clips = []
         for c in clips[:6]:
-            entrada = _resolver_ruta(c["archivo"])
+            entrada = _transcodar_si_hevc(_resolver_ruta(c["archivo"]), tmp)
             inicio  = _parse_tiempo(c.get("inicio", "0"))
             dur     = float(c.get("duracion", 5))
             clip = VideoFileClip(entrada, audio=False).subclipped(inicio, inicio + dur)

@@ -1,0 +1,42 @@
+{
+  "prohibiciones": [
+    {
+      "fecha": "2026-04-21",
+      "agente": "media",
+      "accion": "analizar más de 5 videos en una sola sesión",
+      "razon": "gasta tokens innecesariamente — filtrar por nombre/tamaño primero"
+    },
+    {
+      "fecha": "2026-04-21",
+      "agente": "media",
+      "accion": "llamar video_cortar antes de video_crear_profesional",
+      "razon": "duplica el trabajo — video_crear_profesional ya corta internamente"
+    },
+    {
+      "fecha": "2026-04-21",
+      "agente": "media",
+      "accion": "re-analizar videos que ya aparecen en media_indexados",
+      "razon": "el análisis está guardado permanentemente — leerlo directamente ahorra tokens y tiempo"
+    },
+    {
+      "fecha": "2026-04-21",
+      "agente": "general",
+      "accion": "dar comandos git sin el cd al directorio del proyecto primero",
+      "razon": "el usuario trabaja en ~/Documents/agentes — siempre usar: cd ~/Documents/agentes && git pull ..."
+    }
+  ],
+  "reglas": [
+    {
+      "fecha": "2026-04-21",
+      "agente": "media",
+      "situacion": "videos iPhone (.MOV, 4K, HEVC) fallan en MoviePy con error codec",
+      "accion": "video_crear_profesional transcodifica HEVC→H.264 automáticamente; si hay preview .mp4 en output/ usarlo directamente"
+    },
+    {
+      "fecha": "2026-04-21",
+      "agente": "media",
+      "situacion": "hay más de 6 videos candidatos para un reel",
+      "accion": "usar video_info primero para ver duración/tamaño, seleccionar los 4-5 más prometedores, luego video_analizar solo esos"
+    }
+  ]
+}

@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from datetime import datetime
 from pathlib import Path
+from src import patron_db
 
 _MEMORIA_DIR = Path(__file__).parent.parent / "memoria"
 
@@ -61,10 +62,15 @@ def borrar_nota(agente: str, nota_id: int) -> bool:
 # ── Sesiones (contexto general) ───────────────────────────────
 
 def cargar(agente: str) -> str:
-    """Inyecta en el system prompt: notas curadas + sesiones recientes + errores + aprendizajes."""
+    """Inyecta en el system prompt: patrones + notas curadas + sesiones + errores + aprendizajes."""
     partes = []
 
-    # Notas curadas (máxima prioridad — el usuario las controla)
+    # Patrones estructurados (prohibiciones y reglas aprendidas — máxima prioridad)
+    patrones = patron_db.cargar_para_agente(agente)
+    if patrones:
+        partes.append(patrones)
+
+    # Notas curadas (el usuario las controla)
     notas = _leer(_archivo(agente, "notas")).get("notas", [])
     if notas:
         partes.append("=== NOTAS IMPORTANTES ===")

@@ -1,19 +1,24 @@
 #!/usr/bin/env python3
 """
-Gestor de memoria de agentes — agrega, lista y borra notas curadas.
+Gestor de memoria de agentes — agrega, lista y borra notas curadas y patrones.
 
 Uso:
-  python memoria_cli.py listar [agente]          # Ver notas y sesiones de un agente
-  python memoria_cli.py nota <agente> <titulo> <contenido>   # Agregar nota curada
-  python memoria_cli.py borrar <agente> <id>     # Borrar nota por ID
-  python memoria_cli.py limpiar <agente>         # Borrar sesiones automáticas antiguas
-  python memoria_cli.py todos                    # Listar todos los agentes con memoria
+  python memoria_cli.py listar [agente]                          # Ver notas y sesiones
+  python memoria_cli.py nota <agente> <titulo> <contenido>       # Agregar nota curada
+  python memoria_cli.py borrar <agente> <id>                     # Borrar nota por ID
+  python memoria_cli.py limpiar <agente>                         # Borrar sesiones antiguas
+  python memoria_cli.py todos                                    # Listar todos los agentes
+  python memoria_cli.py patrones                                 # Ver todos los patrones
+  python memoria_cli.py prohibir <agente> <accion> <razon>       # Registrar prohibición
+  python memoria_cli.py aprender <agente> <situacion> <accion>   # Registrar patrón
 
 Ejemplos:
   python memoria_cli.py listar marketing
-  python memoria_cli.py nota marketing "Casa Trébol" "Casa en venta $100,000 USD, 3hab, 2baños, Sonsonate"
+  python memoria_cli.py nota marketing "Casa Trébol" "Casa en venta $100,000 USD, 3hab, 2baños"
   python memoria_cli.py borrar marketing 2
-  python memoria_cli.py limpiar investigador
+  python memoria_cli.py patrones
+  python memoria_cli.py prohibir media "llamar video_cortar antes de video_crear_profesional" "duplica trabajo"
+  python memoria_cli.py aprender media "videos iPhone HEVC fallan en MoviePy" "usar previews .mp4 de output/ o transcodificar primero"
 """
 from __future__ import annotations
 import sys
@@ -107,6 +112,50 @@ def cmd_limpiar(agente: str) -> None:
         console.print(f"[dim]No hay sesiones guardadas para {agente}.[/dim]")
 
 
+def cmd_patrones() -> None:
+    from src import patron_db
+    data = patron_db.listar_todos()
+
+    prohibiciones = data.get("prohibiciones", [])
+    reglas = data.get("reglas", [])
+
+    if not prohibiciones and not reglas:
+        console.print("[dim]No hay patrones registrados todavía.[/dim]")
+        return
+
+    if prohibiciones:
+        tabla = Table(title="Prohibiciones (nunca hacer esto)", box=box.ROUNDED, show_lines=True)
+        tabla.add_column("Agente", style="dim", width=10)
+        tabla.add_column("Nunca hacer", style="bold red")
+        tabla.add_column("Porque", style="yellow")
+        tabla.add_column("Fecha", style="dim", width=12)
+        for p in prohibiciones:
+            tabla.add_row(p.get("agente","?"), p["accion"][:60], p["razon"][:60], p.get("fecha",""))
+        console.print(tabla)
+
+    if reglas:
+        tabla = Table(title="Patrones aprendidos", box=box.ROUNDED, show_lines=True)
+        tabla.add_column("Agente", style="dim", width=10)
+        tabla.add_column("Cuando", style="bold cyan")
+        tabla.add_column("Hacer", style="green")
+        tabla.add_column("Fecha", style="dim", width=12)
+        for r in reglas:
+            tabla.add_row(r.get("agente","?"), r["situacion"][:60], r["accion"][:60], r.get("fecha",""))
+        console.print(tabla)
+
+
+def cmd_prohibir(agente: str, accion: str, razon: str) -> None:
+    from src import patron_db
+    patron_db.prohibir(accion, razon, agente)
+    console.print(f"[green]✓[/green] Prohibición registrada para [bold]{agente}[/bold].")
+
+
+def cmd_aprender(agente: str, situacion: str, accion: str) -> None:
+    from src import patron_db
+    patron_db.aprender(situacion, accion, agente)
+    console.print(f"[green]✓[/green] Patrón registrado para [bold]{agente}[/bold].")
+
+
 def main() -> None:
     args = sys.argv[1:]
 
@@ -148,9 +197,24 @@ def main() -> None:
             sys.exit(1)
         cmd_limpiar(args[1])
 
+    elif comando == "patrones":
+        cmd_patrones()
+
+    elif comando == "prohibir":
+        if len(args) < 4:
+            console.print("[red]Uso: python memoria_cli.py prohibir <agente> <accion> <razon>[/red]")
+            sys.exit(1)
+        cmd_prohibir(args[1], args[2], args[3])
+
+    elif comando == "aprender":
+        if len(args) < 4:
+            console.print("[red]Uso: python memoria_cli.py aprender <agente> <situacion> <accion>[/red]")
+            sys.exit(1)
+        cmd_aprender(args[1], args[2], args[3])
+
     else:
         console.print(f"[red]Comando desconocido: {comando}[/red]")
-        console.print("Comandos: listar, nota, borrar, limpiar, todos")
+        console.print("Comandos: listar, nota, borrar, limpiar, todos, patrones, prohibir, aprender")
         sys.exit(1)
 
 

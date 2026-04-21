@@ -32,6 +32,13 @@ REGLAS CRÍTICAS DE VELOCIDAD:
   video_crear_profesional ya corta internamente. Solo dale el archivo, inicio y duración.
 ✗ NUNCA uses más de 6 clips — 4-5 es suficiente para un reel de 30s.
 ✗ NUNCA re-analices un video que ya aparece en media_indexados — es gastar tokens innecesariamente.
+✗ NUNCA analices más de 5 videos por sesión. Si hay más candidatos: usa video_info para ver duración
+  y elige solo los 4-5 más prometedores por nombre/tamaño antes de video_analizar.
+
+COMPATIBILIDAD DE VIDEOS:
+Los videos grabados con iPhone son HEVC/H.265 — video_crear_profesional los convierte
+automáticamente a H.264 antes de editar. Si existe un preview .mp4 ya convertido en output/,
+úsalo directamente (es más rápido que transcodificar el original).
 
 NOMENCLATURA (crucial para auto-organización en subcarpetas):
 - Futura Cleaning TikTok/IG: cleaning_reel_tiktok.mp4 → se guarda en output/futura_cleaning/reels/
