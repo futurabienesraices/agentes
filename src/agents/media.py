@@ -21,8 +21,12 @@ FLUJO AUTÓNOMO — SIEMPRE ESTE ORDEN
 3. Videos en índice: usa el análisis guardado directamente
 4. Videos nuevos: video_info → video_analizar (tipo="reel" para reels, "propiedad" para inmobiliaria)
 5. Seleccionar las MEJORES tomas según criterio profesional (ver abajo)
-6. Cortar → crear reel con video_crear_reel
-7. Reportar: qué creaste, dónde está, por qué elegiste esas tomas
+6. Crear el resultado final directamente con video_crear_reel (sin clips intermedios)
+7. media_limpiar_output → SIEMPRE al final: elimina archivos corruptos y cualquier clip intermedio
+8. Reportar: qué creaste, dónde está, por qué elegiste esas tomas
+
+REGLA DE ORO: en output/ solo debe quedar el archivo FINAL. Si creaste clips intermedios
+para probar, elimínalos con media_limpiar_output antes de terminar.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 CRITERIO PROFESIONAL — SELECCIÓN DE TOMAS

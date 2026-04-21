@@ -219,6 +219,31 @@ TOOLS_MEDIA: list[dict] = [
         "input_schema": {"type": "object", "properties": {}, "required": []},
     },
     {
+        "name": "media_limpiar_output",
+        "description": (
+            "Limpia la carpeta media/output/: elimina archivos corruptos (menos de 500KB), "
+            "archivos intermedios o temporales, y opcionalmente archivos específicos por nombre. "
+            "Llama SIEMPRE al final de cada tarea de edición para no acumular basura."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "eliminar": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "Lista de nombres de archivos a eliminar (clips intermedios, defectuosos, etc.)",
+                    "default": [],
+                },
+                "solo_corruptos": {
+                    "type": "boolean",
+                    "description": "Si true, solo elimina archivos menores a 500KB (probablemente corruptos)",
+                    "default": False,
+                },
+            },
+            "required": [],
+        },
+    },
+    {
         "name": "ebook_crear",
         "description": (
             "Crea un ebook profesional en PDF con portada, índice y capítulos. "
@@ -265,6 +290,7 @@ def ejecutar_herramienta(nombre: str, parametros: dict) -> str:
         "video_info": _video_info,
         "media_listar": _media_listar,
         "media_indexados": lambda: video_db.listar_indexados(),
+        "media_limpiar_output": _media_limpiar_output,
         "ebook_crear": _ebook_crear,
     }
     if nombre not in handlers:
@@ -577,6 +603,55 @@ def _media_listar() -> str:
             lineas.append(f"  • {f.name} ({size:.1f} MB)")
     else:
         lineas.append("  (vacío)")
+    return "\n".join(lineas)
+
+
+def _media_limpiar_output(
+    eliminar: list[str] | None = None,
+    solo_corruptos: bool = False,
+) -> str:
+    """Elimina archivos corruptos e intermedios de media/output/."""
+    MIN_BYTES = 500 * 1024  # 500 KB — menos que esto = corrupto
+    borrados = []
+    errores = []
+    output = Path(CARPETA_OUTPUT)
+    output.mkdir(exist_ok=True)
+
+    # 1. Eliminar archivos específicos solicitados
+    for nombre in (eliminar or []):
+        ruta = output / nombre
+        if not ruta.exists():
+            # Buscar en subdirectorios
+            encontrados = list(output.rglob(nombre))
+            ruta = encontrados[0] if encontrados else ruta
+        if ruta.exists():
+            try:
+                ruta.unlink()
+                borrados.append(nombre)
+            except Exception as e:
+                errores.append(f"{nombre}: {e}")
+
+    # 2. Eliminar archivos corruptos (tamaño menor al mínimo)
+    EXTS_VIDEO = {".mp4", ".mov", ".avi", ".mkv", ".webm", ".m4v"}
+    for f in output.rglob("*"):
+        if f.is_file() and f.suffix.lower() in EXTS_VIDEO:
+            if f.stat().st_size < MIN_BYTES:
+                try:
+                    f.unlink()
+                    borrados.append(f"{f.name} (corrupto — {f.stat().st_size if f.exists() else 0}B)")
+                except Exception:
+                    pass
+
+    if not borrados and not errores:
+        return "output/ ya estaba limpia. No se eliminó nada."
+
+    lineas = [f"Limpieza completada — {len(borrados)} archivo(s) eliminado(s):"]
+    for b in borrados:
+        lineas.append(f"  ✗ {b}")
+    if errores:
+        lineas.append("Errores:")
+        for e in errores:
+            lineas.append(f"  ! {e}")
     return "\n".join(lineas)
 
 
