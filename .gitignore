@@ -32,3 +32,9 @@ logs/
 
 # Reportes generados automáticamente
 reportes/
+
+# Media (videos/audio — demasiado pesados para GitHub, 28GB+)
+media/
+
+# Archivos de sesión de memoria generados en runtime
+memoria/*.json

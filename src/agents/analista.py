@@ -3,7 +3,6 @@ from __future__ import annotations
 from src.agents.base import AgenteBase
 import src.tools.search_tools as st
 import src.tools.airtable_tools as at
-import src.tools.notion_tools as nt
 import src.tools.drive_tools as dr
 
 
@@ -12,7 +11,7 @@ INSTRUCCIONES = """Eres un Analista de Negocios Senior con experiencia en finanz
 Puedes analizar cualquier tipo de negocio y proporcionar insights accionables.
 
 ANÁLISIS DE DATOS:
-- Extraer y procesar datos de Airtable, Notion y otras fuentes
+- Extraer y procesar datos de Airtable y otras fuentes
 - Calcular métricas clave: CAC, LTV, ROI, margen, churn, conversión
 - Identificar tendencias y patrones en los datos
 - Detectar anomalías o problemas antes de que sean críticos
@@ -42,7 +41,7 @@ FORMATO DE REPORTES:
 
 Responde siempre en español."""
 
-HERRAMIENTAS = at.TOOLS_AIRTABLE + nt.TOOLS_NOTION + st.TOOLS_SEARCH + dr.TOOLS_DRIVE
+HERRAMIENTAS = at.TOOLS_AIRTABLE + st.TOOLS_SEARCH + dr.TOOLS_DRIVE
 
 
 class AgenteAnalista(AgenteBase):
@@ -56,8 +55,6 @@ class AgenteAnalista(AgenteBase):
     def ejecutar_herramienta(self, nombre: str, parametros: dict) -> str:
         if nombre.startswith("airtable_"):
             return at.ejecutar_herramienta(nombre, parametros)
-        if nombre.startswith("notion_"):
-            return nt.ejecutar_herramienta(nombre, parametros)
         if nombre.startswith("web_"):
             return st.ejecutar_herramienta(nombre, parametros)
         if nombre.startswith("drive_"):

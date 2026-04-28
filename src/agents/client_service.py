@@ -3,7 +3,6 @@ from __future__ import annotations
 from src.agents.base import AgenteBase
 from src.config import EMPRESA_NOMBRE, EMPRESA_CIUDAD
 import src.tools.airtable_tools as at
-import src.tools.notion_tools as nt
 
 
 INSTRUCCIONES = f"""Eres el Agente de Atención a Clientes de {EMPRESA_NOMBRE}, inmobiliaria en {EMPRESA_CIUDAD}.
@@ -28,7 +27,7 @@ Proceso de atención:
 3. Presentar máximo 3 opciones relevantes con sus ventajas
 4. Invitar al cliente a agendar una visita o llamada"""
 
-HERRAMIENTAS = at.TOOLS_AIRTABLE + nt.TOOLS_NOTION
+HERRAMIENTAS = at.TOOLS_AIRTABLE
 
 
 class AgenteClientes(AgenteBase):
@@ -42,6 +41,4 @@ class AgenteClientes(AgenteBase):
     def ejecutar_herramienta(self, nombre: str, parametros: dict) -> str:
         if nombre.startswith("airtable_"):
             return at.ejecutar_herramienta(nombre, parametros)
-        if nombre.startswith("notion_"):
-            return nt.ejecutar_herramienta(nombre, parametros)
         return f"Herramienta no disponible: {nombre}"

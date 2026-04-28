@@ -3,7 +3,6 @@ from __future__ import annotations
 from src.agents.base import AgenteBase
 from src.config import EMPRESA_NOMBRE, EMPRESA_CIUDAD
 import src.tools.airtable_tools as at
-import src.tools.notion_tools as nt
 import src.tools.drive_tools as dr
 
 
@@ -23,7 +22,7 @@ Formato de reportes:
 - Siempre en español
 - Destaca las métricas más importantes al inicio (resumen ejecutivo)"""
 
-HERRAMIENTAS = at.TOOLS_AIRTABLE + nt.TOOLS_NOTION + dr.TOOLS_DRIVE
+HERRAMIENTAS = at.TOOLS_AIRTABLE + dr.TOOLS_DRIVE
 
 
 class AgenteReportes(AgenteBase):
@@ -37,8 +36,6 @@ class AgenteReportes(AgenteBase):
     def ejecutar_herramienta(self, nombre: str, parametros: dict) -> str:
         if nombre.startswith("airtable_"):
             return at.ejecutar_herramienta(nombre, parametros)
-        if nombre.startswith("notion_"):
-            return nt.ejecutar_herramienta(nombre, parametros)
         if nombre.startswith("drive_"):
             return dr.ejecutar_herramienta(nombre, parametros)
         return f"Herramienta no disponible: {nombre}"

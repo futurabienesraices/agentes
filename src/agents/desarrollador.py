@@ -64,10 +64,10 @@ FRONTEND:
 - Landing pages de alto impacto y conversión
 
 BACKEND:
-- APIs REST con Python (FastAPI, Flask) o Node.js (Express)
-- Integraciones con servicios externos: Airtable, Notion, Meta, Google, WhatsApp, Stripe
-- Webhooks y automatizaciones
-- Bases de datos: PostgreSQL, SQLite, MongoDB
+- Integraciones con API REST y Webhooks
+- Creación de paneles de administración y dashboards internos
+- Integraciones con servicios externos: Airtable, Meta, Google, WhatsApp, Stripe
+- Despliegue de aplicaciones (AWS, Vercel, Railway, Render) datos: PostgreSQL, SQLite, MongoDB
 
 AUTOMATIZACIÓN:
 - Scripts de Python para automatizar tareas repetitivas

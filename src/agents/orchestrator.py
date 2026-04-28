@@ -16,6 +16,7 @@ from src.agents.media import AgenteMedia
 from src.agents.lead_manager import AgenteLeads
 from src.agents.content_creator import AgenteContenido
 from src.agents.client_service import AgenteClientes
+from src.agents.analista_propiedades import AgenteAnalistaPropiedades
 
 
 INSTRUCCIONES_ROUTER = f"""Eres el orquestador del equipo de IA de un emprendedor serial con múltiples negocios.
@@ -34,10 +35,12 @@ media         → Editar video, cortar clips, crear reels, transcribir, extraer 
 inmobiliaria_leads     → CRM: registrar, actualizar o consultar clientes/prospectos inmobiliarios
 inmobiliaria_contenido → Crear posts, copies o publicar contenido específico de propiedades en redes
 inmobiliaria_clientes  → Atención a clientes: consultas, propiedades disponibles, visitas, información
+inmobiliaria_analista  → Analizar propiedades de Airtable y generar insumos de marketing (flyer, carousel, copy, ficha)
 
 REGLAS DE ENRUTAMIENTO:
 - Trading/inversiones/mercados financieros → SIEMPRE trader
 - Inmobiliaria → especializados si es CRM/contenido/atención; analista si son reportes del negocio
+- "analiza esta propiedad", "genera flyer", "crea carousel", "insumos de marketing" → inmobiliaria_analista
 - Dudas entre estratega e investigador → investigador si busca datos, estratega si elabora un plan
 - Una sola palabra, sin explicación."""
 
@@ -58,6 +61,7 @@ class Orquestador:
             "inmobiliaria_leads": AgenteLeads,
             "inmobiliaria_contenido": AgenteContenido,
             "inmobiliaria_clientes": AgenteClientes,
+            "inmobiliaria_analista": AgenteAnalistaPropiedades,
         }
         self._nombres = {
             "investigador": "Investigador",
@@ -70,6 +74,7 @@ class Orquestador:
             "inmobiliaria_leads": "Inmobiliaria — Leads",
             "inmobiliaria_contenido": "Inmobiliaria — Contenido",
             "inmobiliaria_clientes": "Inmobiliaria — Clientes",
+            "inmobiliaria_analista": "Inmobiliaria — Analista de Propiedades",
         }
 
     def _enrutar(self, tarea: str) -> str:
@@ -174,6 +179,23 @@ class Orquestador:
                     ("marketing", tarea),
                 ],
                 "nombre": "Auto-Publicación Diaria",
+            },
+            "analisis-propiedad": {
+                "pasos": [
+                    ("investigador", (
+                        "Investiga en portales inmobiliarios de El Salvador (urbania.sv, lamudi, "
+                        "OLX, etc.) y en Instagram/Facebook qué tipo de contenido y presentación "
+                        "usan las propiedades que más engagement generan en El Salvador hoy. Necesito:\n"
+                        "1) Qué información destacan primero (precio, m2, ubicación, características)\n"
+                        "2) Qué ángulo emocional usan (inversión, familia, seguridad, estilo de vida)\n"
+                        "3) Qué hashtags inmobiliarios están activos para El Salvador\n"
+                        "4) Cómo presentan el precio en posts (rango, exacto, 'a consultar')\n"
+                        "5) Qué elementos visuales funcionan mejor (fotos exteriores, sala, precio grande)\n"
+                        "Dame criterios concretos para optimizar el marketing de una propiedad específica."
+                    )),
+                    ("inmobiliaria_analista", tarea),
+                ],
+                "nombre": "Análisis Completo de Propiedad → Flyer + Copies",
             },
         }
 

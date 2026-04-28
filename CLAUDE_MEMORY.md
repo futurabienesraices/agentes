@@ -30,15 +30,19 @@ Se actualiza conforme avanzamos y se lee al inicio de cada sesión.
 
 4. **Nunca re-analizar videos ya indexados** — `media_indexados` primero, `video_analizar` solo para videos nuevos
 
-## Estado actual del sistema (2026-04-21)
+## Estado actual del sistema (2026-04-22)
 
 ### Implementado y funcionando
-- ✅ 11 agentes: investigador, estratega, desarrollador, marketing, analista, trader, media, leads, contenido, clientes + orquestador
+- ✅ 12 agentes: investigador, estratega, desarrollador, marketing, analista, trader, media, leads, contenido, clientes, **analista_propiedades** + orquestador
 - ✅ Memoria persistente: sesiones, errores, aprendizajes, notas curadas, patrones estructurados
 - ✅ `src/patron_db.py` — prohibiciones y reglas aprendidas, se inyectan en todos los prompts
 - ✅ `src/cache.py` — caché de herramientas (video_analizar: 24h, web_buscar: 6h, etc.)
 - ✅ `src/video_db.py` — índice permanente de videos, keyed por MD5(64KB)+size
 - ✅ `src/tools/media_tools.py` — MoviePy + edge-tts + subtítulos + HEVC auto-transcode
+- ✅ `src/tools/design_tools.py` — Generador de flyers PNG (1080×1350) y carousels (1080×1080) con Pillow
+- ✅ `AgenteAnalistaPropiedades` — lee Airtable, analiza propiedad y genera flyer+carousel+copies automáticamente
+- ✅ `AgenteContenido` — ahora tiene acceso a design_flyer y design_carousel
+- ✅ Pipeline `analisis-propiedad`: Investigador → AnalistaPropiedades (tendencias + flyer completo)
 - ✅ `app.py` + `templates/index.html` — interfaz web tipo WhatsApp (Flask, puerto 5000)
 - ✅ `scheduler.py` — publicaciones diarias automáticas (08:00)
 - ✅ `reporte_diario.py` — reporte de tendencias + plan de contenido
@@ -53,22 +57,25 @@ Se actualiza conforme avanzamos y se lee al inicio de cada sesión.
 ## Arquitectura de archivos importantes
 
 ```
-app.py                    ← Interfaz web Flask (NUEVO)
+app.py                    ← Interfaz web Flask
 main.py                   ← CLI original
 scheduler.py              ← Publicaciones automáticas diarias
 reporte_diario.py         ← Reporte + auto-publicación
 memoria_cli.py            ← Gestión de memoria desde terminal
 src/
-  patron_db.py            ← Patrones aprendidos (NUEVO)
+  patron_db.py            ← Patrones aprendidos
   cache.py                ← Caché de herramientas
   video_db.py             ← Índice permanente de videos
   config.py               ← Variables de entorno
   agents/
-    orchestrator.py       ← Enrutador + pipelines
+    orchestrator.py       ← Enrutador + pipelines (incl. analisis-propiedad)
+    analista_propiedades.py ← NUEVO: analiza propiedad → flyer + carousel + copies
     media.py              ← Editor profesional de video
     base.py               ← Loop de tool-use + memoria
+    content_creator.py    ← Contenido + redes + design_tools
   tools/
     media_tools.py        ← Video/audio/ebook tools
+    design_tools.py       ← NUEVO conectado: flyer y carousel con Pillow
     social_media_tools.py ← Facebook/Instagram API
     drive_tools.py        ← Google Drive
     airtable_tools.py     ← CRM
@@ -85,6 +92,8 @@ media/
     futura_cleaning/facebook/
     futura_bienes_raices/reels/
     futura_bienes_raices/facebook/
+    futura_bienes_raices/flyers/    ← NUEVO: flyers PNG generados
+    futura_bienes_raices/carousel/  ← NUEVO: slides de carousel
   video_index.json        ← Índice permanente de videos analizados
 ```
 

@@ -31,6 +31,7 @@ AGENTES_DISPONIBLES = {
     "inmobiliaria_leads":     "CRM: registrar y consultar clientes/prospectos",
     "inmobiliaria_contenido": "Posts y marketing de propiedades en redes",
     "inmobiliaria_clientes":  "Atención al cliente y propiedades disponibles",
+    "inmobiliaria_analista":  "Analiza propiedades y genera flyer + carousel + copies",
     # Auto
     "auto":                   "Enrutamiento automático (por defecto)",
 }
@@ -105,9 +106,9 @@ def main() -> None:
     )
     parser.add_argument(
         "--pipeline", "-p",
-        choices=["content-cleaning", "content-inmobiliaria", "daily-brief", "publicar-diario"],
+        choices=["content-cleaning", "content-inmobiliaria", "daily-brief", "publicar-diario", "analisis-propiedad"],
         default="",
-        help="Pipeline encadenado. Opciones: content-cleaning | content-inmobiliaria | daily-brief | publicar-diario",
+        help="Pipeline encadenado. Opciones: content-cleaning | content-inmobiliaria | daily-brief | publicar-diario | analisis-propiedad",
     )
     args = parser.parse_args()
 
