@@ -22,6 +22,7 @@ import schedule
 
 # ── Configuración ─────────────────────────────────────────────
 HORA_PUBLICACION = "08:00"   # Hora local del servidor
+HORA_CONTENIDO   = "07:00"   # Generación de carousel + video (1h antes)
 PYTHON = sys.executable
 PROYECTO = Path(__file__).parent
 
@@ -36,6 +37,26 @@ logging.basicConfig(
     ],
 )
 log = logging.getLogger(__name__)
+
+
+def tarea_contenido_diario() -> None:
+    """Genera carousel + video Reel para las redes sociales del día."""
+    fecha = datetime.now().strftime("%Y-%m-%d")
+    log.info(f"Generando contenido diario — {fecha}")
+
+    for empresa in ["fbr", "fc"]:
+        resultado = subprocess.run(
+            [PYTHON, "content_daily.py", "--empresa", empresa, "--tipo", "ambos"],
+            cwd=str(PROYECTO),
+            capture_output=True,
+            text=True,
+            timeout=600,   # 10 minutos máximo (los videos tardan más)
+        )
+        if resultado.returncode == 0:
+            log.info(f"✅ Contenido generado OK — {empresa.upper()} — {fecha}")
+        else:
+            log.error(f"❌ Error contenido {empresa.upper()} — {fecha}")
+            log.error(resultado.stderr[-500:] if resultado.stderr else "(sin stderr)")
 
 
 def tarea_diaria() -> None:
@@ -59,11 +80,16 @@ def tarea_diaria() -> None:
 
 def main() -> None:
     if "--ahora" in sys.argv:
-        log.info("Ejecutando tarea ahora (modo prueba)...")
+        log.info("Ejecutando tareas ahora (modo prueba)...")
+        tarea_contenido_diario()
         tarea_diaria()
         return
 
-    log.info(f"Scheduler iniciado — publicación programada cada día a las {HORA_PUBLICACION}")
+    log.info(f"Scheduler iniciado")
+    log.info(f"  → Contenido diario (carousel + video): {HORA_CONTENIDO}")
+    log.info(f"  → Publicación automática: {HORA_PUBLICACION}")
+
+    schedule.every().day.at(HORA_CONTENIDO).do(tarea_contenido_diario)
     schedule.every().day.at(HORA_PUBLICACION).do(tarea_diaria)
 
     # Mostrar próxima ejecución
