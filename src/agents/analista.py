@@ -43,7 +43,20 @@ FORMATO DE REPORTES:
 Responde siempre en español.
 """
 
-CONTEXTO_NEGOCIO = ""
+CONTEXTO_NEGOCIO = """
+=== NEGOCIO ACTUAL ===
+Empresa: Futura Bienes Raíces + Futura Cleaning
+Ciudad: Santa Ana, El Salvador
+WhatsApp: 6027-2418
+Web Cleaning: www.futuracleaning.serviciosfutura.com
+
+Negocios activos:
+1. Futura Bienes Raíces — venta de casas, terrenos y propiedades en obra gris
+2. Futura Cleaning — limpieza especializada de colchones y juegos de sala/sillas
+
+Operador: Ever Quiñónez
+Zona principal: Santa Ana y alrededores, El Salvador
+"""
 
 INSTRUCCIONES = f"{BASE_ESPECIALISTA}\n\n=== CONTEXTO DEL NEGOCIO ===\n{CONTEXTO_NEGOCIO}"
 
