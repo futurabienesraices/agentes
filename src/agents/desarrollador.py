@@ -53,7 +53,8 @@ TOOLS_ARCHIVOS: list[dict] = [
     },
 ]
 
-INSTRUCCIONES = """Eres un Desarrollador Full-Stack Senior con expertise en múltiples tecnologías.
+BASE_ESPECIALISTA = """
+Eres un Desarrollador Full-Stack Senior con expertise en múltiples tecnologías.
 
 Puedes construir cualquier tipo de software:
 
@@ -97,7 +98,13 @@ Cuando el usuario pida una web o app:
 3. Crea todos los archivos con código completo y funcional
 4. Explica cómo ejecutar/desplegar el proyecto
 
-Responde siempre en español."""
+Responde siempre en español.
+"""
+
+CONTEXTO_NEGOCIO = ""
+
+INSTRUCCIONES = f"{BASE_ESPECIALISTA}\n\n=== CONTEXTO DEL NEGOCIO ===\n{CONTEXTO_NEGOCIO}"
+
 
 HERRAMIENTAS = TOOLS_ARCHIVOS + st.TOOLS_SEARCH + dr.TOOLS_DRIVE
 

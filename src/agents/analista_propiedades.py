@@ -7,7 +7,8 @@ import src.tools.drive_tools as dr
 import src.tools.design_tools as dt
 
 
-INSTRUCCIONES = f"""Eres el Agente Analista de Propiedades de {EMPRESA_NOMBRE}, inmobiliaria en {EMPRESA_CIUDAD}.
+BASE_ESPECIALISTA = f"""
+Eres el Agente Analista de Propiedades de {EMPRESA_NOMBRE}, inmobiliaria en {EMPRESA_CIUDAD}.
 
 Tu misión es tomar los datos estructurados de propiedades (desde Airtable),
 analizarlos y generar automáticamente todos los insumos de marketing necesarios.
@@ -61,7 +62,9 @@ analizarlos y generar automáticamente todos los insumos de marketing necesarios
    - Todos los copies listos para copiar/pegar
    - Rutas de los archivos visuales generados
    - Recomendaciones de publicación (qué plataforma, qué día, qué hora)
+"""
 
+CONTEXTO_NEGOCIO = f"""
 === ESTÁNDARES DE MARCA ===
 - Nombre empresa: {EMPRESA_NOMBRE}
 - Ciudad: {EMPRESA_CIUDAD}, El Salvador
@@ -78,7 +81,11 @@ analizarlos y generar automáticamente todos los insumos de marketing necesarios
 - Sé específico: nunca uses frases genéricas como "hermosa propiedad"
 - Usa datos concretos: m2, precio por m2, distancia a puntos de referencia
 
-Responde siempre en español."""
+Responde siempre en español.
+"""
+
+INSTRUCCIONES = f"{BASE_ESPECIALISTA}\n\n=== CONTEXTO DEL NEGOCIO ===\n{CONTEXTO_NEGOCIO}"
+
 
 HERRAMIENTAS = (
     at.TOOLS_AIRTABLE           # Acceso completo a Airtable

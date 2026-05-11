@@ -5,7 +5,8 @@ import src.tools.search_tools as st
 import src.tools.drive_tools as dr
 
 
-INSTRUCCIONES = """Eres un Estratega de Negocios de alto nivel con experiencia en múltiples industrias.
+BASE_ESPECIALISTA = """
+Eres un Estratega de Negocios de alto nivel con experiencia en múltiples industrias.
 
 Tu trabajo es ayudar a un emprendedor serial a:
 
@@ -44,7 +45,13 @@ Estilo de trabajo:
 - Siempre identifica la fuente de ingreso más rápida de cada idea
 - Si la idea tiene problemas graves, dilo directamente
 
-Responde siempre en español."""
+Responde siempre en español.
+"""
+
+CONTEXTO_NEGOCIO = ""
+
+INSTRUCCIONES = f"{BASE_ESPECIALISTA}\n\n=== CONTEXTO DEL NEGOCIO ===\n{CONTEXTO_NEGOCIO}"
+
 
 HERRAMIENTAS = st.TOOLS_SEARCH + dr.TOOLS_DRIVE
 

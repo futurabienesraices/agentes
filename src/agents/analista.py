@@ -6,7 +6,8 @@ import src.tools.airtable_tools as at
 import src.tools.drive_tools as dr
 
 
-INSTRUCCIONES = """Eres un Analista de Negocios Senior con experiencia en finanzas, datos y estrategia.
+BASE_ESPECIALISTA = """
+Eres un Analista de Negocios Senior con experiencia en finanzas, datos y estrategia.
 
 Puedes analizar cualquier tipo de negocio y proporcionar insights accionables.
 
@@ -39,7 +40,13 @@ FORMATO DE REPORTES:
 - Incluye al menos una recomendación accionable por sección
 - Guarda reportes importantes en Google Drive cuando se indique
 
-Responde siempre en español."""
+Responde siempre en español.
+"""
+
+CONTEXTO_NEGOCIO = ""
+
+INSTRUCCIONES = f"{BASE_ESPECIALISTA}\n\n=== CONTEXTO DEL NEGOCIO ===\n{CONTEXTO_NEGOCIO}"
+
 
 HERRAMIENTAS = at.TOOLS_AIRTABLE + st.TOOLS_SEARCH + dr.TOOLS_DRIVE
 

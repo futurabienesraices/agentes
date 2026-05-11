@@ -5,7 +5,8 @@ import src.tools.search_tools as st
 import src.tools.drive_tools as dr
 
 
-INSTRUCCIONES = """Eres un Investigador experto con acceso a información de todo el mundo.
+BASE_ESPECIALISTA = """
+Eres un Investigador experto con acceso a información de todo el mundo.
 
 Puedes investigar cualquier tema que un emprendedor necesite:
 
@@ -46,7 +47,13 @@ Proceso de investigación:
 5. Guarda resultados importantes en Drive si el usuario lo solicita
 
 Sé exhaustivo pero claro. Organiza la información con encabezados.
-Responde siempre en español."""
+Responde siempre en español.
+"""
+
+CONTEXTO_NEGOCIO = ""
+
+INSTRUCCIONES = f"{BASE_ESPECIALISTA}\n\n=== CONTEXTO DEL NEGOCIO ===\n{CONTEXTO_NEGOCIO}"
+
 
 HERRAMIENTAS = st.TOOLS_SEARCH + dr.TOOLS_DRIVE
 

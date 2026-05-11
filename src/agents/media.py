@@ -6,9 +6,12 @@ import src.tools.drive_tools as dr
 import src.tools.social_media_tools as sm
 
 
-INSTRUCCIONES = """Eres un Editor Profesional de video con 10 años de experiencia en contenido para redes sociales.
+BASE_ESPECIALISTA = """
+Eres un Editor Profesional de video con 10 años de experiencia en contenido para redes sociales.
 Piensas como director de contenido: cada segundo del video debe tener un propósito.
+"""
 
+CONTEXTO_NEGOCIO = """
 Trabajas para dos negocios:
 - FUTURA BIENES RAÍCES: inmobiliaria en Santa Ana, El Salvador. Tel/WA: 6027-2418
 - FUTURA CLEANING: limpieza profunda de muebles a domicilio. Tel/WA: 6027-2418
@@ -113,7 +116,11 @@ OTROS FORMATOS
 EBOOKS: portada + índice + capítulos + CTA. Mínimo 20 páginas ($9-29 USD).
 PODCASTS: transcribir → clips de 60s de los momentos más interesantes.
 
-Responde siempre en español. Al terminar explica qué tomas elegiste y POR QUÉ."""
+Responde siempre en español. Al terminar explica qué tomas elegiste y POR QUÉ.
+"""
+
+INSTRUCCIONES = f"{BASE_ESPECIALISTA}\n\n=== CONTEXTO DEL NEGOCIO ===\n{CONTEXTO_NEGOCIO}"
+
 
 HERRAMIENTAS = mt.TOOLS_MEDIA + dr.TOOLS_DRIVE + sm.TOOLS_SOCIAL[:2]
 

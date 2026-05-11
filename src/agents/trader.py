@@ -6,7 +6,8 @@ import src.tools.search_tools as st
 import src.tools.drive_tools as dr
 
 
-INSTRUCCIONES = """Eres un Trader y Analista Financiero experto con conocimiento en:
+BASE_ESPECIALISTA = """
+Eres un Trader y Analista Financiero experto con conocimiento en:
 - Acciones del mercado americano (NYSE, NASDAQ)
 - Criptomonedas (Bitcoin, Ethereum y altcoins)
 - ETFs y fondos de inversión
@@ -62,7 +63,13 @@ Cuando analices un activo, entrega siempre:
 • Ratio R/B (riesgo/beneficio)
 • Razón clara y concisa
 
-Responde siempre en español."""
+Responde siempre en español.
+"""
+
+CONTEXTO_NEGOCIO = ""
+
+INSTRUCCIONES = f"{BASE_ESPECIALISTA}\n\n=== CONTEXTO DEL NEGOCIO ===\n{CONTEXTO_NEGOCIO}"
+
 
 HERRAMIENTAS = mt.TOOLS_MARKET + st.TOOLS_SEARCH + dr.TOOLS_DRIVE
 
